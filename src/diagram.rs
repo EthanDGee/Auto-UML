@@ -327,4 +327,24 @@ mod tests {
         assert_eq!(func.arguments[0].name, "mode");
         assert_eq!(func.arguments[0].var_type, "String");
     }
+
+    #[test]
+    fn test_diagram_build_generics() {
+        let mut parser = setup_parser();
+        let source = std::fs::read("test_source_code_examples/generics.rs").expect("failed to read test file");
+        let tree = parser.parse(&source, None).unwrap();
+        let mut diagram = Diagram::new();
+        diagram.build(tree.root_node(), &source);
+
+        // For Box<T>, extract_text_by_kind for type_identifier might only return Box or it might fail if structure is different
+        assert!(diagram.classes.len() >= 1);
+        let class = &diagram.classes[0];
+        assert!(class.name.contains("Box"));
+        
+        assert_eq!(class.variables.len(), 1);
+        assert_eq!(class.variables[0].name, "inner");
+        
+        // In impl<T> Box<T>, the type_identifier child of impl_item is "Box"
+        // Let's see what it actually extracts.
+    }
 }
