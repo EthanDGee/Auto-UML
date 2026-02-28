@@ -19,54 +19,70 @@ struct Edge {
 
 pub fn generate(uml_diagram: &diagram::Diagram) -> String {
     let mut edges: Vec<Edge> = Vec::new();
-
     let mut output = String::from("classDiagram\n");
 
+    // Group classes by namespace
+    let mut namespace_map: std::collections::HashMap<String, Vec<&diagram::Class>> = std::collections::HashMap::new();
     for class in &uml_diagram.classes {
-        output.push_str(&format!("    class {} {{\n", class.name));
+        namespace_map.entry(class.namespace.clone()).or_insert_with(Vec::new).push(class);
+    }
 
-        // Add variables
-        for var in &class.variables {
-            output.push_str(&format!("        +{}: {}\n", var.name, var.var_type));
-
-            // add edge if variable matches class
-            if let Some(destination) = uml_diagram.classes.iter().find(|c| c.name == var.var_type) {
-                let new_edge = Edge {
-                    source: class.name.clone(),
-                    destination: destination.name.clone(),
-                    edge_type: Relation::Association,
-                };
-                edges.push(new_edge);
-            }
+    for (namespace, classes) in namespace_map {
+        let has_namespace = !namespace.is_empty();
+        if has_namespace {
+            output.push_str(&format!("    subgraph {}\n", namespace));
         }
 
-        // Add functions
-        for func in &class.functions {
-            let args: Vec<String> = func
-                .arguments
-                .iter()
-                .map(|arg| format!("{}: {}", arg.name, arg.var_type))
-                .collect();
+        for class in classes {
+            output.push_str(&format!("    class {} {{\n", class.name));
 
-            output.push_str(&format!(
-                "        +{}({}) {}\n",
-                func.name,
-                args.join(", "),
-                func.return_type
-            ));
+            // Add variables
+            for var in &class.variables {
+                output.push_str(&format!("        +{}: {}\n", var.name, var.var_type));
 
-            // add edge if return type matches class
-            if let Some(destination) = uml_diagram.classes.iter().find(|c| c.name == func.return_type) {
-                let new_edge = Edge {
-                    source: class.name.clone(),
-                    destination: destination.name.clone(),
-                    edge_type: Relation::Dependency,
-                };
-                edges.push(new_edge);
+                // add edge if variable matches a qualified class name
+                if let Some(destination) = uml_diagram.classes.iter().find(|c| c.name == var.var_type) {
+                    let new_edge = Edge {
+                        source: class.name.clone(),
+                        destination: destination.name.clone(),
+                        edge_type: Relation::Association,
+                    };
+                    edges.push(new_edge);
+                }
             }
+
+            // Add functions
+            for func in &class.functions {
+                let args: Vec<String> = func
+                    .arguments
+                    .iter()
+                    .map(|arg| format!("{}: {}", arg.name, arg.var_type))
+                    .collect();
+
+                output.push_str(&format!(
+                    "        +{}({}) {}\n",
+                    func.name,
+                    args.join(", "),
+                    func.return_type
+                ));
+
+                // add edge if return type matches a qualified class name
+                if let Some(destination) = uml_diagram.classes.iter().find(|c| c.name == func.return_type) {
+                    let new_edge = Edge {
+                        source: class.name.clone(),
+                        destination: destination.name.clone(),
+                        edge_type: Relation::Dependency,
+                    };
+                    edges.push(new_edge);
+                }
+            }
+
+            output.push_str("    }\n");
         }
 
-        output.push_str("    }\n");
+        if has_namespace {
+            output.push_str("    end\n");
+        }
     }
 
     // add edges to end of output

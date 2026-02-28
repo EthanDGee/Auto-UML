@@ -46,6 +46,29 @@ impl Directory {
             self.merged_diagram.imports.append(&mut imports);
         }
     }
+
+    /// Resolve types across all classes in the merged diagram
+    pub fn resolve_types(&mut self, type_map: &GlobalTypeMap) {
+        for class in &mut self.merged_diagram.classes {
+            // Resolve variable types
+            for var in &mut class.variables {
+                if let Some(qualified) = type_map.resolve(&var.var_type, &class.name, &self.merged_diagram.imports) {
+                    var.var_type = qualified;
+                }
+            }
+            // Resolve function return and argument types
+            for func in &mut class.functions {
+                if let Some(qualified) = type_map.resolve(&func.return_type, &class.name, &self.merged_diagram.imports) {
+                    func.return_type = qualified;
+                }
+                for arg in &mut func.arguments {
+                    if let Some(qualified) = type_map.resolve(&arg.var_type, &class.name, &self.merged_diagram.imports) {
+                        arg.var_type = qualified;
+                    }
+                }
+            }
+        }
+    }
 }
 
 pub struct GlobalTypeMap {
@@ -65,6 +88,36 @@ impl GlobalTypeMap {
             .entry(short_name)
             .or_insert_with(Vec::new)
             .push(qualified_name);
+    }
+
+    /// Resolution heuristic for a type T used in a class C
+    pub fn resolve(&self, type_name: &str, current_class_qualified: &str, _imports: &[String]) -> Option<String> {
+        let candidates = self.types.get(type_name)?;
+
+        // 1. If only one candidate, it's likely the one (simplification for now)
+        if candidates.len() == 1 {
+            return Some(candidates[0].clone());
+        }
+
+        // 2. Check for same-file/same-namespace (heuristic: prefix match)
+        // Find the candidate with the longest common prefix with the current class
+        let mut best_candidate = None;
+        let mut max_prefix_match = 0;
+
+        for candidate in candidates {
+            let common_prefix_len = current_class_qualified
+                .chars()
+                .zip(candidate.chars())
+                .take_while(|(a, b)| a == b)
+                .count();
+
+            if common_prefix_len > max_prefix_match {
+                max_prefix_match = common_prefix_len;
+                best_candidate = Some(candidate.clone());
+            }
+        }
+
+        best_candidate.or_else(|| Some(candidates[0].clone()))
     }
 }
 
@@ -224,14 +277,23 @@ mod tests {
     }
 
     #[test]
-    fn test_global_type_map() {
+    fn test_type_resolution_heuristic() {
         let mut map = GlobalTypeMap::new();
         map.insert("User".to_string(), "models_User".to_string());
         map.insert("User".to_string(), "auth_User".to_string());
 
-        assert_eq!(map.types.get("User").unwrap().len(), 2);
-        assert!(map.types.get("User").unwrap().contains(&"models_User".to_string()));
-        assert!(map.types.get("User").unwrap().contains(&"auth_User".to_string()));
+        // Resolve User for a class in models_... should prefer models_User
+        let resolved = map.resolve("User", "models_Account", &[]);
+        assert_eq!(resolved.unwrap(), "models_User");
+
+        // Resolve User for a class in auth_... should prefer auth_User
+        let resolved_auth = map.resolve("User", "auth_Session", &[]);
+        assert_eq!(resolved_auth.unwrap(), "auth_User");
+
+        // Resolve something that has only one candidate
+        map.insert("Database".to_string(), "core_Database".to_string());
+        let resolved_db = map.resolve("Database", "auth_Session", &[]);
+        assert_eq!(resolved_db.unwrap(), "core_Database");
     }
 
     #[test]
@@ -243,6 +305,7 @@ mod tests {
         let mut stitcher = Stitcher::new(root, "rust".to_string());
         let mut directory = stitcher.build();
         directory.merge_all();
+        directory.resolve_types(&stitcher.type_map);
 
         let class_names: Vec<String> = directory
             .merged_diagram
