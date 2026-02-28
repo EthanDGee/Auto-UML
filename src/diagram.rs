@@ -93,8 +93,8 @@ impl Diagram {
                     current_class_index = Some(self.classes.len() - 1);
                 }
             }
-        } else if kind == "impl_block" {
-            // Rust specific: Implementation blocks as they require .extract_text_by_kind()
+        } else if kind == "impl_item" {
+            // Rust specific: Implementation blocks
             let name = self.extract_text_by_kind(node, source, "type_identifier");
             if !name.is_empty() {
                 if let Some(idx) = self.classes.iter().position(|class| class.name == name) {
