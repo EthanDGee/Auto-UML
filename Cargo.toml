@@ -1,6 +1,6 @@
 [package]
 name = "auto-uml"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 
 [dependencies]
@@ -8,3 +8,7 @@ clap = { version = "4.5.60", features = ["derive"] }
 tree-sitter = "0.26.6"
 tree-sitter-java = "0.23.5"
 tree-sitter-rust = "0.24.0"
+tree-sitter-javascript = "0.25.0"
+tree-sitter-c-sharp = "0.23.1"
+tree-sitter-cpp = "0.23.4"
+tree-sitter-typescript = "0.23.2"

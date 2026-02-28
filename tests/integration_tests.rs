@@ -32,7 +32,58 @@ const JAVA_TESTS: LangTestConfig = LangTestConfig {
     ],
 };
 
-const ALL_LANGS: &[LangTestConfig] = &[RUST_TESTS, JAVA_TESTS];
+const JAVASCRIPT_TESTS: LangTestConfig = LangTestConfig {
+    name: "javascript",
+    path_prefix: "test_source_code_examples/javascript",
+    files: [
+        ("simple_struct", "User.js"),
+        ("impl_block", "Calculator.js"),
+        ("complex_types", "ComplexData.js"),
+        ("generics", "Box.js"),
+    ],
+};
+
+const CSHARP_TESTS: LangTestConfig = LangTestConfig {
+    name: "csharp",
+    path_prefix: "test_source_code_examples/csharp",
+    files: [
+        ("simple_struct", "User.cs"),
+        ("impl_block", "Calculator.cs"),
+        ("complex_types", "ComplexData.cs"),
+        ("generics", "Box.cs"),
+    ],
+};
+
+const CPP_TESTS: LangTestConfig = LangTestConfig {
+    name: "cpp",
+    path_prefix: "test_source_code_examples/cpp",
+    files: [
+        ("simple_struct", "User.cpp"),
+        ("impl_block", "Calculator.cpp"),
+        ("complex_types", "ComplexData.cpp"),
+        ("generics", "Box.cpp"),
+    ],
+};
+
+const TYPESCRIPT_TESTS: LangTestConfig = LangTestConfig {
+    name: "typescript",
+    path_prefix: "test_source_code_examples/typescript",
+    files: [
+        ("simple_struct", "User.ts"),
+        ("impl_block", "Calculator.ts"),
+        ("complex_types", "ComplexData.ts"),
+        ("generics", "Box.ts"),
+    ],
+};
+
+const ALL_LANGS: &[LangTestConfig] = &[
+    RUST_TESTS,
+    JAVA_TESTS,
+    JAVASCRIPT_TESTS,
+    CSHARP_TESTS,
+    CPP_TESTS,
+    TYPESCRIPT_TESTS,
+];
 
 fn setup_parser(lang: &str) -> Parser {
     let mut parser = Parser::new();
@@ -46,6 +97,26 @@ fn setup_parser(lang: &str) -> Parser {
             parser
                 .set_language(&tree_sitter_java::LANGUAGE.into())
                 .expect("Error loading Java grammar");
+        }
+        "javascript" => {
+            parser
+                .set_language(&tree_sitter_javascript::LANGUAGE.into())
+                .expect("Error loading JavaScript grammar");
+        }
+        "csharp" => {
+            parser
+                .set_language(&tree_sitter_c_sharp::LANGUAGE.into())
+                .expect("Error loading C# grammar");
+        }
+        "cpp" => {
+            parser
+                .set_language(&tree_sitter_cpp::LANGUAGE.into())
+                .expect("Error loading C++ grammar");
+        }
+        "typescript" => {
+            parser
+                .set_language(&tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into())
+                .expect("Error loading TypeScript grammar");
         }
         _ => panic!("Unsupported language: {}", lang),
     }
@@ -78,53 +149,6 @@ fn run_test(
     diagram.build(tree.root_node(), &source);
 
     validator(&diagram, config);
-}
-
-#[test]
-fn debug_java_tree() {
-    let mut parser = setup_parser("java");
-    let path = "test_source_code_examples/java/User.java";
-    let source = std::fs::read(&path).expect("failed to read test file");
-    let tree = parser.parse(&source, None).unwrap();
-
-    fn print_node(node: tree_sitter::Node, source: &[u8], depth: usize) {
-        let kind = node.kind();
-        let text = if node.child_count() == 0 {
-            format!(
-                ": '{}'",
-                String::from_utf8_lossy(&source[node.start_byte()..node.end_byte()])
-            )
-        } else {
-            "".to_string()
-        };
-        println!("{}{}{}", "  ".repeat(depth), kind, text);
-        let mut cursor = node.walk();
-        for child in node.children(&mut cursor) {
-            print_node(child, source, depth + 1);
-        }
-    }
-    print_node(tree.root_node(), &source, 0);
-}
-
-#[test]
-fn debug_java_box() {
-    let mut parser = setup_parser("java");
-    let path = "test_source_code_examples/java/Box.java";
-    let source = std::fs::read(&path).expect("failed to read test file");
-    let tree = parser.parse(&source, None).unwrap();
-
-    let mut diagram = Diagram::new("java");
-    diagram.build(tree.root_node(), &source);
-
-    for class in &diagram.classes {
-        println!("Class: {}", class.name);
-        for var in &class.variables {
-            println!("  Var: {} : {}", var.name, var.var_type);
-        }
-        for func in &class.functions {
-            println!("  Func: {}() : {}", func.name, func.return_type);
-        }
-    }
 }
 
 #[test]

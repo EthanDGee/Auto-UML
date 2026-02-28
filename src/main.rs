@@ -3,7 +3,6 @@ use tree_sitter::Parser as TreeSitterParser;
 mod diagram;
 mod lang_config;
 mod mermaid;
-
 use clap::Parser;
 
 use crate::diagram::Diagram;
@@ -28,7 +27,7 @@ fn main() {
     //  Create the parser and set language
     let mut parser = TreeSitterParser::new();
 
-    match args.lang.as_str() {
+    match args.lang.to_lowercase().as_str() {
         "rust" => {
             parser
                 .set_language(&tree_sitter_rust::LANGUAGE.into())
@@ -38,6 +37,26 @@ fn main() {
             parser
                 .set_language(&tree_sitter_java::LANGUAGE.into())
                 .expect("Error loading Java grammar");
+        }
+        "js" | "javascript" => {
+            parser
+                .set_language(&tree_sitter_javascript::LANGUAGE.into())
+                .expect("Error loading javascript grammar");
+        }
+        "ts" | "typescript" => {
+            parser
+                .set_language(&tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into())
+                .expect("Error loading typescript grammar");
+        }
+        "c++" | "cpp" => {
+            parser
+                .set_language(&tree_sitter_cpp::LANGUAGE.into())
+                .expect("Error loading c++ grammar");
+        }
+        "c#" | "cs" | "c-sharp" => {
+            parser
+                .set_language(&tree_sitter_c_sharp::LANGUAGE.into())
+                .expect("Error loading c# grammar");
         }
         _ => {
             println!("Error {} is not a supported language", args.lang);

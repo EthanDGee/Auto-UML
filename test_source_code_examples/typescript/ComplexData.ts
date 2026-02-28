@@ -1,0 +1,6 @@
+class ComplexData {
+    raw_bytes: Uint8Array;
+    process(mode: string): boolean {
+        return true;
+    }
+}

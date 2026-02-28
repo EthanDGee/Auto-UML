@@ -66,6 +66,10 @@ impl Diagram {
         let lang = match language {
             "rust" => lang_config::RUST_CONFIG,
             "java" => lang_config::JAVA_CONFIG,
+            "javascript" => lang_config::JAVASCRIPT_CONFIG,
+            "csharp" => lang_config::CSHARP_CONFIG,
+            "cpp" => lang_config::CPP_CONFIG,
+            "typescript" => lang_config::TYPESCRIPT_CONFIG,
             _ => std::process::exit(1),
         };
 
