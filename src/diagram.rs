@@ -81,7 +81,7 @@ impl Diagram {
         let kind = node.kind();
         let mut current_class_index = class_index;
 
-        if CLASS_NODE_PATTERNS.iter().any(|&c| c == kind) {
+        if CLASS_NODE_PATTERNS.contains(&kind) {
             let name = self.extract_identifier(node, source);
             if !name.is_empty() {
                 // update class index to match preexisting class if already exist
@@ -104,7 +104,7 @@ impl Diagram {
                     current_class_index = Some(self.classes.len() - 1);
                 }
             }
-        } else if FUNCTION_NODE_PATTERNS.iter().any(|&c| c == kind) {
+        } else if FUNCTION_NODE_PATTERNS.contains(&kind) {
             // Function/Method detection
             let name = self.extract_identifier(node, source);
             if !name.is_empty() {
@@ -115,7 +115,7 @@ impl Diagram {
                     self.classes[idx].add_function(func);
                 }
             }
-        } else if VARIABLE_NODE_PATTERNS.iter().any(|&c| c == kind) {
+        } else if VARIABLE_NODE_PATTERNS.contains(&kind) {
             // Field/Variable detection
             let name = self.extract_identifier(node, source);
             if !name.is_empty() {
@@ -262,7 +262,8 @@ mod tests {
     #[test]
     fn test_diagram_build_simple_struct() {
         let mut parser = setup_parser();
-        let source = std::fs::read("test_source_code_examples/simple_struct.rs").expect("failed to read test file");
+        let source = std::fs::read("test_source_code_examples/simple_struct.rs")
+            .expect("failed to read test file");
         let tree = parser.parse(&source, None).unwrap();
         let mut diagram = Diagram::new();
         diagram.build(tree.root_node(), &source);
@@ -282,7 +283,8 @@ mod tests {
     #[test]
     fn test_diagram_build_impl_blocks() {
         let mut parser = setup_parser();
-        let source = std::fs::read("test_source_code_examples/impl_blocks.rs").expect("failed to read test file");
+        let source = std::fs::read("test_source_code_examples/impl_blocks.rs")
+            .expect("failed to read test file");
         let tree = parser.parse(&source, None).unwrap();
         let mut diagram = Diagram::new();
         diagram.build(tree.root_node(), &source);
@@ -291,7 +293,7 @@ mod tests {
         let class = &diagram.classes[0];
         assert_eq!(class.name, "Calculator");
         assert_eq!(class.functions.len(), 2);
-        
+
         let add_func = &class.functions[0];
         assert_eq!(add_func.name, "add");
         assert_eq!(add_func.return_type, "i32");
@@ -306,7 +308,8 @@ mod tests {
     #[test]
     fn test_diagram_build_complex_types() {
         let mut parser = setup_parser();
-        let source = std::fs::read("test_source_code_examples/complex_types.rs").expect("failed to read test file");
+        let source = std::fs::read("test_source_code_examples/complex_types.rs")
+            .expect("failed to read test file");
         let tree = parser.parse(&source, None).unwrap();
         let mut diagram = Diagram::new();
         diagram.build(tree.root_node(), &source);
@@ -331,20 +334,37 @@ mod tests {
     #[test]
     fn test_diagram_build_generics() {
         let mut parser = setup_parser();
-        let source = std::fs::read("test_source_code_examples/generics.rs").expect("failed to read test file");
+        let source = std::fs::read("test_source_code_examples/generics.rs")
+            .expect("failed to read test file");
         let tree = parser.parse(&source, None).unwrap();
         let mut diagram = Diagram::new();
         diagram.build(tree.root_node(), &source);
 
         // For Box<T>, extract_text_by_kind for type_identifier might only return Box or it might fail if structure is different
-        assert!(diagram.classes.len() >= 1);
+        assert!(!diagram.classes.is_empty());
         let class = &diagram.classes[0];
         assert!(class.name.contains("Box"));
-        
+
         assert_eq!(class.variables.len(), 1);
         assert_eq!(class.variables[0].name, "inner");
-        
+
         // In impl<T> Box<T>, the type_identifier child of impl_item is "Box"
         // Let's see what it actually extracts.
+    }
+
+    #[test]
+    fn test_helpers_direct() {
+        let mut parser = setup_parser();
+        let source = b"fn test(val: i32) -> bool { true }";
+        let tree = parser.parse(source, None).unwrap();
+        let root = tree.root_node();
+        let func_node = root.child(0).unwrap();
+
+        let diagram = Diagram::new();
+        let name = diagram.extract_identifier(func_node, source);
+        assert_eq!(name, "test");
+
+        let ret_type = diagram.extract_type(func_node, source);
+        assert_eq!(ret_type, "bool");
     }
 }
