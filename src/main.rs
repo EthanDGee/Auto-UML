@@ -1,22 +1,27 @@
 use std::fs;
+use std::time::{SystemTime, UNIX_EPOCH};
 use tree_sitter::Parser as TreeSitterParser;
 mod diagram;
 mod lang_config;
 mod mermaid;
 mod stitcher;
-use clap::Parser;
+use clap::{ArgGroup, Parser};
 
 use crate::diagram::Diagram;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
+#[command(group(ArgGroup::new("source").required(true).args(&["source_code", "git"])))]
 struct Args {
     /// Programming language (optional, auto-detected if omitted)
     #[arg(short, long)]
     lang: Option<String>,
-    /// Path to the source file or directory
-    #[arg(short, long)]
-    source_code: String,
+    /// Path to the local source file or directory
+    #[arg(short, long, conflicts_with = "git")]
+    source_code: Option<String>,
+    /// Remote git repository URL to clone and analyze
+    #[arg(long, conflicts_with = "source_code")]
+    git: Option<String>,
 
     /// Destination file for the exporter
     #[arg(short, long)]
@@ -60,8 +65,44 @@ fn detect_language(path: &std::path::Path) -> Option<String> {
 fn main() {
     let args = Args::parse();
 
-    // Parse source code
-    let input_path = std::path::PathBuf::from(&args.source_code);
+    let temp_dir: Option<std::path::PathBuf>;
+    let input_path = if let Some(git_url) = &args.git {
+        let timestamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+        let rand_suffix: u16 = rand_simple();
+        let temp_path = std::env::temp_dir()
+            .join("auto-uml")
+            .join(format!("cloned-{}-{}", timestamp, rand_suffix));
+
+        println!("Cloning {} to {}...", git_url, temp_path.display());
+
+        let mut callbacks = git2::RemoteCallbacks::new();
+        callbacks.transfer_progress(|progress| {
+            print!(
+                "\rCloning: {}/{} objects ({}%)",
+                progress.received_objects(),
+                progress.total_objects(),
+                100 * progress.received_objects() / progress.total_objects()
+            );
+            std::io::Write::flush(&mut std::io::stdout()).unwrap();
+            true
+        });
+
+        let mut options = git2::FetchOptions::new();
+        options.remote_callbacks(callbacks);
+
+        git2::Repository::clone(git_url, &temp_path).expect("Failed to clone repository");
+
+        println!("\nClone complete. Analyzing...");
+
+        temp_dir = Some(temp_path.clone());
+        temp_path
+    } else {
+        temp_dir = None;
+        std::path::PathBuf::from(args.source_code.as_ref().expect("source_code required"))
+    };
 
     let lang = args
         .lang
@@ -130,7 +171,7 @@ fn main() {
             }
         }
 
-        let source = std::fs::read(&args.source_code).expect("Failed to read source code file");
+        let source = std::fs::read(&input_path).expect("Failed to read source code file");
         let tree = parser.parse(&source, None).unwrap();
         let root_node = tree.root_node();
         let mut program_diagram = Diagram::new(&lang);
@@ -139,5 +180,25 @@ fn main() {
     };
 
     // pass to the exporter and write
-    let _ = fs::write(args.destination, mermaid::generate(&final_diagram));
+    let _ = fs::write(&args.destination, mermaid::generate(&final_diagram));
+    println!("Diagram written to {}", args.destination);
+
+    // Clean up temp directory if we cloned from git
+    if let Some(temp_path) = temp_dir {
+        println!("Cleaning up temporary directory...");
+        std::fs::remove_dir_all(&temp_path).ok();
+    }
+}
+
+fn rand_simple() -> u16 {
+    use std::collections::hash_map::RandomState;
+    use std::hash::{BuildHasher, Hasher};
+    let mut hasher = RandomState::new().build_hasher();
+    hasher.write_u8(
+        std::time::SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .subsec_nanos() as u8,
+    );
+    (hasher.finish() % 65536) as u16
 }
