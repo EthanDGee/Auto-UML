@@ -3,6 +3,7 @@ use tree_sitter::Parser as TreeSitterParser;
 mod diagram;
 mod lang_config;
 mod mermaid;
+mod stitcher;
 use clap::Parser;
 
 use crate::diagram::Diagram;

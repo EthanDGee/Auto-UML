@@ -9,6 +9,8 @@ pub struct LangConfig {
     pub parameter_patterns: &'static [&'static str],
     pub wrapper_patterns: &'static [&'static str],
     pub skip_patterns: &'static [&'static str],
+    pub import_patterns: &'static [&'static str],
+    pub namespace_patterns: &'static [&'static str],
 }
 
 pub const RUST_CONFIG: LangConfig = LangConfig {
@@ -39,6 +41,8 @@ pub const RUST_CONFIG: LangConfig = LangConfig {
         "attribute_item",
         "type_parameters",
     ],
+    import_patterns: &["use_declaration"],
+    namespace_patterns: &["mod_item"],
 };
 
 pub const JAVA_CONFIG: LangConfig = LangConfig {
@@ -78,6 +82,8 @@ pub const JAVA_CONFIG: LangConfig = LangConfig {
         "attribute_item",
         "type_parameters",
     ],
+    import_patterns: &["import_declaration"],
+    namespace_patterns: &["package_declaration"],
 };
 
 pub const JAVASCRIPT_CONFIG: LangConfig = LangConfig {
@@ -90,6 +96,8 @@ pub const JAVASCRIPT_CONFIG: LangConfig = LangConfig {
     parameter_patterns: &["identifier"],
     wrapper_patterns: &["lexical_declaration", "variable_declaration"],
     skip_patterns: &[],
+    import_patterns: &["import_statement"],
+    namespace_patterns: &[],
 };
 
 pub const CSHARP_CONFIG: LangConfig = LangConfig {
@@ -102,6 +110,8 @@ pub const CSHARP_CONFIG: LangConfig = LangConfig {
     parameter_patterns: &["parameter"],
     wrapper_patterns: &["variable_declaration"],
     skip_patterns: &["modifier"],
+    import_patterns: &["using_directive"],
+    namespace_patterns: &["namespace_declaration"],
 };
 
 pub const CPP_CONFIG: LangConfig = LangConfig {
@@ -114,6 +124,8 @@ pub const CPP_CONFIG: LangConfig = LangConfig {
     parameter_patterns: &["parameter_declaration"],
     wrapper_patterns: &["field_declaration", "function_definition", "function_declarator"],
     skip_patterns: &["storage_class_specifier", "type_qualifier"],
+    import_patterns: &["preproc_include"],
+    namespace_patterns: &["namespace_definition"],
 };
 
 pub const TYPESCRIPT_CONFIG: LangConfig = LangConfig {
@@ -126,4 +138,6 @@ pub const TYPESCRIPT_CONFIG: LangConfig = LangConfig {
     parameter_patterns: &["required_parameter", "optional_parameter"],
     wrapper_patterns: &["lexical_declaration", "variable_declaration"],
     skip_patterns: &[],
+    import_patterns: &["import_statement"],
+    namespace_patterns: &[],
 };

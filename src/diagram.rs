@@ -34,6 +34,7 @@ impl Function {
 
 pub struct Class {
     pub name: String,
+    pub namespace: String,
     pub functions: Vec<Function>,
     pub variables: Vec<Variable>,
 }
@@ -42,6 +43,16 @@ impl Class {
     pub fn new(name: String) -> Self {
         Class {
             name,
+            namespace: String::new(),
+            functions: Vec::new(),
+            variables: Vec::new(),
+        }
+    }
+
+    pub fn with_namespace(name: String, namespace: String) -> Self {
+        Class {
+            name,
+            namespace,
             functions: Vec::new(),
             variables: Vec::new(),
         }
@@ -58,6 +69,7 @@ impl Class {
 
 pub struct Diagram {
     pub classes: Vec<Class>,
+    pub imports: Vec<String>,
     lang: lang_config::LangConfig,
 }
 
@@ -75,28 +87,49 @@ impl Diagram {
 
         Diagram {
             classes: Vec::new(),
+            imports: Vec::new(),
             lang,
         }
     }
 
     pub fn build(&mut self, root_node: Node, source: &[u8]) {
-        self.navigate_node(root_node, source, None);
+        self.navigate_node(root_node, source, None, "");
     }
 
     /// Recursively navigate the tree_sitter tree and build out Diagram
-    pub fn navigate_node(&mut self, node: Node, source: &[u8], class_index: Option<usize>) {
+    pub fn navigate_node(
+        &mut self,
+        node: Node,
+        source: &[u8],
+        class_index: Option<usize>,
+        current_namespace: &str,
+    ) {
         let kind = node.kind();
         let mut next_class_index = class_index;
+        let mut active_namespace = current_namespace.to_string();
 
-        if self.lang.class_patterns.contains(&kind) {
+        if self.lang.import_patterns.contains(&kind) {
+            let import_text = String::from_utf8_lossy(&source[node.start_byte()..node.end_byte()])
+                .to_string();
+            self.imports.push(import_text);
+        } else if self.lang.namespace_patterns.contains(&kind) {
+            let name = self.extract_identifier(node, source);
+            if !name.is_empty() {
+                if active_namespace.is_empty() {
+                    active_namespace = name;
+                } else {
+                    active_namespace = format!("{}_{}", active_namespace, name);
+                }
+            }
+        } else if self.lang.class_patterns.contains(&kind) {
             let name = self.extract_identifier(node, source);
             if !name.is_empty() {
                 // update class index to match preexisting class if already exist
-                if let Some(idx) = self.classes.iter().position(|class| class.name == name) {
+                if let Some(idx) = self.classes.iter().position(|class| class.name == name && class.namespace == active_namespace) {
                     next_class_index = Some(idx);
                 } else {
                     // create new class and update indexes
-                    self.classes.push(Class::new(name));
+                    self.classes.push(Class::with_namespace(name, active_namespace.clone()));
                     next_class_index = Some(self.classes.len() - 1);
                 }
             }
@@ -127,7 +160,7 @@ impl Diagram {
         let mut cursor = node.walk();
 
         for child in node.children(&mut cursor) {
-            self.navigate_node(child, source, next_class_index);
+            self.navigate_node(child, source, next_class_index, &active_namespace);
         }
     }
 
@@ -243,8 +276,16 @@ mod tests {
     fn test_class_new() {
         let class = Class::new("MyClass".to_string());
         assert_eq!(class.name, "MyClass");
+        assert_eq!(class.namespace, "");
         assert!(class.functions.is_empty());
         assert!(class.variables.is_empty());
+    }
+
+    #[test]
+    fn test_class_with_namespace() {
+        let class = Class::with_namespace("MyClass".to_string(), "my_namespace".to_string());
+        assert_eq!(class.name, "MyClass");
+        assert_eq!(class.namespace, "my_namespace");
     }
 
     #[test]
