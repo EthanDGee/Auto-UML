@@ -193,3 +193,138 @@ impl Diagram {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tree_sitter::Parser;
+
+    #[test]
+    fn test_variable_new() {
+        let var = Variable::new("x".to_string(), "i32".to_string());
+        assert_eq!(var.name, "x");
+        assert_eq!(var.var_type, "i32");
+    }
+
+    #[test]
+    fn test_function_new() {
+        let func = Function::new("test_func".to_string(), "void".to_string());
+        assert_eq!(func.name, "test_func");
+        assert_eq!(func.return_type, "void");
+        assert!(func.arguments.is_empty());
+    }
+
+    #[test]
+    fn test_function_add_argument() {
+        let mut func = Function::new("test_func".to_string(), "void".to_string());
+        let var = Variable::new("arg1".to_string(), "String".to_string());
+        func.add_argument(var);
+        assert_eq!(func.arguments.len(), 1);
+        assert_eq!(func.arguments[0].name, "arg1");
+        assert_eq!(func.arguments[0].var_type, "String");
+    }
+
+    #[test]
+    fn test_class_new() {
+        let class = Class::new("MyClass".to_string());
+        assert_eq!(class.name, "MyClass");
+        assert!(class.functions.is_empty());
+        assert!(class.variables.is_empty());
+    }
+
+    #[test]
+    fn test_class_add_items() {
+        let mut class = Class::new("MyClass".to_string());
+        let var = Variable::new("field1".to_string(), "u32".to_string());
+        let func = Function::new("method1".to_string(), "bool".to_string());
+        class.add_variable(var);
+        class.add_function(func);
+        assert_eq!(class.variables.len(), 1);
+        assert_eq!(class.functions.len(), 1);
+        assert_eq!(class.variables[0].name, "field1");
+        assert_eq!(class.functions[0].name, "method1");
+    }
+
+    #[test]
+    fn test_diagram_new() {
+        let diagram = Diagram::new();
+        assert!(diagram.classes.is_empty());
+    }
+
+    fn setup_parser() -> Parser {
+        let mut parser = Parser::new();
+        parser
+            .set_language(&tree_sitter_rust::LANGUAGE.into())
+            .expect("Error loading Rust grammar");
+        parser
+    }
+
+    #[test]
+    fn test_diagram_build_simple_struct() {
+        let mut parser = setup_parser();
+        let source = std::fs::read("test_source_code_examples/simple_struct.rs").expect("failed to read test file");
+        let tree = parser.parse(&source, None).unwrap();
+        let mut diagram = Diagram::new();
+        diagram.build(tree.root_node(), &source);
+
+        assert_eq!(diagram.classes.len(), 1);
+        let class = &diagram.classes[0];
+        assert_eq!(class.name, "User");
+        assert_eq!(class.variables.len(), 3);
+        assert_eq!(class.variables[0].name, "id");
+        assert_eq!(class.variables[0].var_type, "u64");
+        assert_eq!(class.variables[1].name, "username");
+        assert_eq!(class.variables[1].var_type, "String");
+        assert_eq!(class.variables[2].name, "email");
+        assert_eq!(class.variables[2].var_type, "String");
+    }
+
+    #[test]
+    fn test_diagram_build_impl_blocks() {
+        let mut parser = setup_parser();
+        let source = std::fs::read("test_source_code_examples/impl_blocks.rs").expect("failed to read test file");
+        let tree = parser.parse(&source, None).unwrap();
+        let mut diagram = Diagram::new();
+        diagram.build(tree.root_node(), &source);
+
+        assert_eq!(diagram.classes.len(), 1);
+        let class = &diagram.classes[0];
+        assert_eq!(class.name, "Calculator");
+        assert_eq!(class.functions.len(), 2);
+        
+        let add_func = &class.functions[0];
+        assert_eq!(add_func.name, "add");
+        assert_eq!(add_func.return_type, "i32");
+        assert_eq!(add_func.arguments.len(), 2);
+        assert_eq!(add_func.arguments[0].name, "a");
+        assert_eq!(add_func.arguments[0].var_type, "i32");
+
+        let clear_func = &class.functions[1];
+        assert_eq!(clear_func.name, "clear");
+    }
+
+    #[test]
+    fn test_diagram_build_complex_types() {
+        let mut parser = setup_parser();
+        let source = std::fs::read("test_source_code_examples/complex_types.rs").expect("failed to read test file");
+        let tree = parser.parse(&source, None).unwrap();
+        let mut diagram = Diagram::new();
+        diagram.build(tree.root_node(), &source);
+
+        assert_eq!(diagram.classes.len(), 1);
+        let class = &diagram.classes[0];
+        assert_eq!(class.name, "ComplexData");
+        assert_eq!(class.variables.len(), 1);
+        assert_eq!(class.variables[0].name, "raw_bytes");
+        // tree-sitter might return "Vec<u8>" or something similar
+        assert!(class.variables[0].var_type.contains("Vec"));
+
+        assert_eq!(class.functions.len(), 1);
+        let func = &class.functions[0];
+        assert_eq!(func.name, "process");
+        assert_eq!(func.return_type, "bool");
+        assert_eq!(func.arguments.len(), 1);
+        assert_eq!(func.arguments[0].name, "mode");
+        assert_eq!(func.arguments[0].var_type, "String");
+    }
+}
