@@ -1,0 +1,58 @@
+name: Update UML Diagram
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+
+permissions:
+  contents: write
+
+jobs:
+  update-uml:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Build auto-uml
+        run: cargo build --release
+
+      - name: Generate UML
+        run: |
+          ./target/release/auto-uml --source-code src --destination diagram.mmd
+          echo "### UML Diagram" > UML.md
+          echo '```mermaid' >> UML.md
+          cat diagram.mmd >> UML.md
+          echo '```' >> UML.md
+          rm diagram.mmd
+
+      - name: Commit and push if changed
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add UML.md
+          if ! git diff --staged --quiet; then
+            git commit -m "docs: update UML diagram [skip ci]"
+            git push
+          else
+            echo "No changes to UML.md"
+          fi
