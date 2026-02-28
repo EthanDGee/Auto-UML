@@ -11,3 +11,19 @@ impl Calculator {
         // ...
     }
 }
+
+struct AdvancedCalculator {
+    base: Calculator,
+}
+
+impl AdvancedCalculator {
+    fn multiply(&self, a: f64, b: f64) -> f64 { a * b }
+}
+
+struct Config<T> {
+    data: T,
+}
+
+impl<T> Config<T> {
+    fn get(&self) -> &T { &self.data }
+}

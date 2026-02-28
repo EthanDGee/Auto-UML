@@ -151,6 +151,51 @@ fn run_test(
     validator(&diagram, config);
 }
 
+use auto_uml::stitcher::Stitcher;
+use std::path::PathBuf;
+
+#[test]
+fn test_stitcher_integration() {
+    let mut root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    root.push("test_source_code_examples");
+    root.push("stitch_test");
+
+    let mut stitcher = Stitcher::new(root, "rust".to_string());
+    let mut directory = stitcher.build();
+    directory.merge_all();
+    directory.resolve_types(&stitcher.type_map);
+
+    let diagram = &directory.merged_diagram;
+
+    // Verify all classes were found with qualified names
+    // Path-based qualification: models_User, models_Post, auth_User, App
+    let class_names: Vec<String> = diagram.classes.iter().map(|c| c.name.clone()).collect();
+    
+    assert!(class_names.contains(&"models_User".to_string()));
+    assert!(class_names.contains(&"models_Post".to_string()));
+    assert!(class_names.contains(&"auth_User".to_string()));
+    assert!(class_names.contains(&"App".to_string()));
+
+    // Verify type resolution in 'App'
+    let app_class = diagram.classes.iter().find(|c| c.name == "App").unwrap();
+    
+    // latest_post: Post -> resolved to models_Post
+    let latest_post_var = app_class.variables.iter().find(|v| v.name == "latest_post").unwrap();
+    assert_eq!(latest_post_var.var_type, "models_Post");
+
+    // current_user: User -> should resolve to auth_User or models_User?
+    // Based on our current "longest common prefix" heuristic:
+    // App is in root (no prefix), auth_User is in auth/, models_User is in models/
+    // Heuristic will likely pick one (the first one) if no prefix match.
+    // Let's check what it picked.
+    let current_user_var = app_class.variables.iter().find(|v| v.name == "current_user").unwrap();
+    assert!(current_user_var.var_type == "models_User" || current_user_var.var_type == "auth_User");
+
+    // Verify edge generation in Mermaid
+    let output = generate(diagram);
+    assert!(output.contains("App --> models_Post"));
+}
+
 #[test]
 fn test_all_simple_structs() {
     for config in ALL_LANGS {
