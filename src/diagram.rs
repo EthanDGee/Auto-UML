@@ -1,14 +1,20 @@
 use crate::lang_config;
+use crate::lang_config::LangConfig;
 use tree_sitter::Node;
 
 pub struct Variable {
     pub name: String,
     pub var_type: String,
+    pub inner_types: Vec<String>,
 }
 
 impl Variable {
-    pub fn new(name: String, var_type: String) -> Self {
-        Variable { name, var_type }
+    pub fn new(name: String, var_type: String, inner_types: Vec<String>) -> Self {
+        Variable {
+            name,
+            var_type,
+            inner_types,
+        }
     }
 }
 
@@ -16,14 +22,16 @@ pub struct Function {
     pub name: String,
     pub arguments: Vec<Variable>,
     pub return_type: String,
+    pub return_inner_types: Vec<String>,
 }
 
 impl Function {
-    pub fn new(name: String, return_type: String) -> Self {
+    pub fn new(name: String, return_type: String, return_inner_types: Vec<String>) -> Self {
         Function {
             name,
             arguments: Vec::new(),
             return_type,
+            return_inner_types,
         }
     }
 
@@ -70,7 +78,7 @@ impl Class {
 pub struct Diagram {
     pub classes: Vec<Class>,
     pub imports: Vec<String>,
-    lang: lang_config::LangConfig,
+    lang: LangConfig,
 }
 
 impl Diagram {
@@ -109,8 +117,8 @@ impl Diagram {
         let mut active_namespace = current_namespace.to_string();
 
         if self.lang.import_patterns.contains(&kind) {
-            let import_text = String::from_utf8_lossy(&source[node.start_byte()..node.end_byte()])
-                .to_string();
+            let import_text =
+                String::from_utf8_lossy(&source[node.start_byte()..node.end_byte()]).to_string();
             self.imports.push(import_text);
         } else if self.lang.namespace_patterns.contains(&kind) {
             let name = self.extract_identifier(node, source);
@@ -125,11 +133,16 @@ impl Diagram {
             let name = self.extract_identifier(node, source);
             if !name.is_empty() {
                 // update class index to match preexisting class if already exist
-                if let Some(idx) = self.classes.iter().position(|class| class.name == name && class.namespace == active_namespace) {
+                if let Some(idx) = self
+                    .classes
+                    .iter()
+                    .position(|class| class.name == name && class.namespace == active_namespace)
+                {
                     next_class_index = Some(idx);
                 } else {
                     // create new class and update indexes
-                    self.classes.push(Class::with_namespace(name, active_namespace.clone()));
+                    self.classes
+                        .push(Class::with_namespace(name, active_namespace.clone()));
                     next_class_index = Some(self.classes.len() - 1);
                 }
             }
@@ -137,7 +150,14 @@ impl Diagram {
             // Function/Method detection
             let name = self.extract_identifier(node, source);
             if !name.is_empty() {
-                let mut func = Function::new(name, self.extract_type(node, source));
+                let types = self.extract_type(node, source);
+                let main_type = types.first().cloned().unwrap_or_else(|| "void".to_string());
+                let inners = if types.len() > 1 {
+                    types[1..].to_vec()
+                } else {
+                    Vec::new()
+                };
+                let mut func = Function::new(name, main_type, inners);
                 self.extract_parameters(node, source, &mut func);
 
                 if let Some(idx) = next_class_index {
@@ -148,8 +168,14 @@ impl Diagram {
             // Field/Variable detection
             let name = self.extract_identifier(node, source);
             if !name.is_empty() {
-                let var_type = self.extract_type(node, source);
-                let var = Variable::new(name, var_type);
+                let types = self.extract_type(node, source);
+                let main_type = types.first().cloned().unwrap_or_else(|| "void".to_string());
+                let inners = if types.len() > 1 {
+                    types[1..].to_vec()
+                } else {
+                    Vec::new()
+                };
+                let var = Variable::new(name, main_type, inners);
                 if let Some(idx) = next_class_index {
                     self.classes[idx].add_variable(var);
                 }
@@ -200,7 +226,7 @@ impl Diagram {
     }
 
     /// Helper to extract type information from a node.
-    fn extract_type(&self, node: Node, source: &[u8]) -> String {
+    fn extract_type(&self, node: Node, source: &[u8]) -> Vec<String> {
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
             let kind = child.kind();
@@ -211,11 +237,32 @@ impl Diagram {
                 .iter()
                 .any(|&p| kind == p || (p == "type" && kind.contains("type")))
             {
-                return String::from_utf8_lossy(&source[child.start_byte()..child.end_byte()])
-                    .to_string();
+                let full_type =
+                    String::from_utf8_lossy(&source[child.start_byte()..child.end_byte()])
+                        .to_string();
+
+                // Naive parsing of generics: "Vec<User>" -> ["Vec", "User"]
+                if let Some(pos) = full_type.find('<') {
+                    let main = full_type[..pos].trim().to_string();
+                    let mut inners = Vec::new();
+                    if let Some(end_pos) = full_type.rfind('>') {
+                        let inner_str = &full_type[pos + 1..end_pos];
+                        // split by comma for multiple generics like HashMap<K, V>
+                        for part in inner_str.split(',') {
+                            let part = part.trim();
+                            if !part.is_empty() {
+                                inners.push(part.to_string());
+                            }
+                        }
+                    }
+                    let mut result = vec![main];
+                    result.append(&mut inners);
+                    return result;
+                }
+                return vec![full_type];
             }
         }
-        "void".to_string()
+        vec!["void".to_string()]
     }
 
     /// Helper to extract parameters and add them to a function.
@@ -231,9 +278,17 @@ impl Diagram {
                 for param in child.children(&mut p_cursor) {
                     if self.lang.parameter_patterns.contains(&param.kind()) {
                         let p_name = self.extract_identifier(param, source);
-                        let p_type = self.extract_type(param, source);
+                        let types = self.extract_type(param, source);
+                        let main_type =
+                            types.first().cloned().unwrap_or_else(|| "void".to_string());
+                        let inners = if types.len() > 1 {
+                            types[1..].to_vec()
+                        } else {
+                            Vec::new()
+                        };
+
                         if !p_name.is_empty() {
-                            func.add_argument(Variable::new(p_name, p_type));
+                            func.add_argument(Variable::new(p_name, main_type, inners));
                         }
                     }
                 }
@@ -249,14 +304,14 @@ mod tests {
 
     #[test]
     fn test_variable_new() {
-        let var = Variable::new("x".to_string(), "i32".to_string());
+        let var = Variable::new("x".to_string(), "i32".to_string(), Vec::new());
         assert_eq!(var.name, "x");
         assert_eq!(var.var_type, "i32");
     }
 
     #[test]
     fn test_function_new() {
-        let func = Function::new("test_func".to_string(), "void".to_string());
+        let func = Function::new("test_func".to_string(), "void".to_string(), Vec::new());
         assert_eq!(func.name, "test_func");
         assert_eq!(func.return_type, "void");
         assert!(func.arguments.is_empty());
@@ -264,8 +319,8 @@ mod tests {
 
     #[test]
     fn test_function_add_argument() {
-        let mut func = Function::new("test_func".to_string(), "void".to_string());
-        let var = Variable::new("arg1".to_string(), "String".to_string());
+        let mut func = Function::new("test_func".to_string(), "void".to_string(), Vec::new());
+        let var = Variable::new("arg1".to_string(), "String".to_string(), Vec::new());
         func.add_argument(var);
         assert_eq!(func.arguments.len(), 1);
         assert_eq!(func.arguments[0].name, "arg1");
@@ -291,8 +346,8 @@ mod tests {
     #[test]
     fn test_class_add_items() {
         let mut class = Class::new("MyClass".to_string());
-        let var = Variable::new("field1".to_string(), "u32".to_string());
-        let func = Function::new("method1".to_string(), "bool".to_string());
+        let var = Variable::new("field1".to_string(), "u32".to_string(), Vec::new());
+        let func = Function::new("method1".to_string(), "bool".to_string(), Vec::new());
         class.add_variable(var);
         class.add_function(func);
         assert_eq!(class.variables.len(), 1);
@@ -327,7 +382,43 @@ mod tests {
         let name = diagram.extract_identifier(func_node, source);
         assert_eq!(name, "test");
 
-        let ret_type = diagram.extract_type(func_node, source);
-        assert_eq!(ret_type, "bool");
+        let types = diagram.extract_type(func_node, source);
+        assert_eq!(types[0], "bool");
+    }
+
+    #[test]
+    fn test_extract_type_generics() {
+        let mut parser = setup_parser();
+        let source = b"let x: Vec<User> = Vec::new();";
+        let tree = parser.parse(source, None).unwrap();
+        let root = tree.root_node();
+        // tree-sitter-rust: let_declaration -> variable_declaration -> ...
+        // We'll just test the helper directly with mock data if needed,
+        // but let's try to find the node.
+
+        let diagram = Diagram::new("rust");
+        // find the type node
+        let mut cursor = root.walk();
+        let mut type_node = None;
+
+        fn find_type_node<'a>(node: Node<'a>, diagram: &Diagram) -> Option<Node<'a>> {
+            if diagram.lang.type_patterns.contains(&node.kind()) || node.kind().contains("type") {
+                return Some(node);
+            }
+            let mut cursor = node.walk();
+            for child in node.children(&mut cursor) {
+                if let Some(n) = find_type_node(child, diagram) {
+                    return Some(n);
+                }
+            }
+            None
+        }
+
+        type_node = find_type_node(root, &diagram);
+        assert!(type_node.is_some());
+
+        let types = diagram.extract_type(type_node.unwrap().parent().unwrap(), source);
+        assert_eq!(types[0], "Vec");
+        assert_eq!(types[1], "User");
     }
 }

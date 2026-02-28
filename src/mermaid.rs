@@ -38,9 +38,14 @@ pub fn generate(uml_diagram: &diagram::Diagram) -> String {
 
             // Add variables
             for var in &class.variables {
-                output.push_str(&format!("        +{}: {}\n", var.name, var.var_type));
+                let display_type = if var.inner_types.is_empty() {
+                    var.var_type.clone()
+                } else {
+                    format!("{}~{}~", var.var_type, var.inner_types.join(", "))
+                };
+                output.push_str(&format!("        +{}: {}\n", var.name, display_type));
 
-                // add edge if variable matches a qualified class name
+                // add edge if main type matches a qualified class name
                 if let Some(destination) = uml_diagram.classes.iter().find(|c| c.name == var.var_type) {
                     let new_edge = Edge {
                         source: class.name.clone(),
@@ -49,6 +54,17 @@ pub fn generate(uml_diagram: &diagram::Diagram) -> String {
                     };
                     edges.push(new_edge);
                 }
+                // add edges for inner types
+                for inner in &var.inner_types {
+                    if let Some(destination) = uml_diagram.classes.iter().find(|c| c.name == *inner) {
+                        let new_edge = Edge {
+                            source: class.name.clone(),
+                            destination: destination.name.clone(),
+                            edge_type: Relation::Association,
+                        };
+                        edges.push(new_edge);
+                    }
+                }
             }
 
             // Add functions
@@ -56,17 +72,30 @@ pub fn generate(uml_diagram: &diagram::Diagram) -> String {
                 let args: Vec<String> = func
                     .arguments
                     .iter()
-                    .map(|arg| format!("{}: {}", arg.name, arg.var_type))
+                    .map(|arg| {
+                        let display_type = if arg.inner_types.is_empty() {
+                            arg.var_type.clone()
+                        } else {
+                            format!("{}~{}~", arg.var_type, arg.inner_types.join(", "))
+                        };
+                        format!("{}: {}", arg.name, display_type)
+                    })
                     .collect();
+
+                let display_return = if func.return_inner_types.is_empty() {
+                    func.return_type.clone()
+                } else {
+                    format!("{}~{}~", func.return_type, func.return_inner_types.join(", "))
+                };
 
                 output.push_str(&format!(
                     "        +{}({}) {}\n",
                     func.name,
                     args.join(", "),
-                    func.return_type
+                    display_return
                 ));
 
-                // add edge if return type matches a qualified class name
+                // add edge if main return type matches a qualified class name
                 if let Some(destination) = uml_diagram.classes.iter().find(|c| c.name == func.return_type) {
                     let new_edge = Edge {
                         source: class.name.clone(),
@@ -74,6 +103,17 @@ pub fn generate(uml_diagram: &diagram::Diagram) -> String {
                         edge_type: Relation::Dependency,
                     };
                     edges.push(new_edge);
+                }
+                // add edges for inner return types
+                for inner in &func.return_inner_types {
+                    if let Some(destination) = uml_diagram.classes.iter().find(|c| c.name == *inner) {
+                        let new_edge = Edge {
+                            source: class.name.clone(),
+                            destination: destination.name.clone(),
+                            edge_type: Relation::Dependency,
+                        };
+                        edges.push(new_edge);
+                    }
                 }
             }
 
@@ -117,10 +157,10 @@ mod tests {
         let mut diagram = Diagram::new("rust");
         let mut class = Class::new("User".to_string());
 
-        class.add_variable(Variable::new("id".to_string(), "u64".to_string()));
+        class.add_variable(Variable::new("id".to_string(), "u64".to_string(), Vec::new()));
 
-        let mut func = Function::new("login".to_string(), "bool".to_string());
-        func.add_argument(Variable::new("token".to_string(), "String".to_string()));
+        let mut func = Function::new("login".to_string(), "bool".to_string(), Vec::new());
+        func.add_argument(Variable::new("token".to_string(), "String".to_string(), Vec::new()));
         class.add_function(func);
 
         diagram.classes.push(class);
@@ -139,8 +179,8 @@ mod tests {
         let session_class = Class::new("Session".to_string());
         let profile_class = Class::new("Profile".to_string());
 
-        user_class.add_variable(Variable::new("current_session".to_string(), "Session".to_string()));
-        user_class.add_function(Function::new("get_profile".to_string(), "Profile".to_string()));
+        user_class.add_variable(Variable::new("current_session".to_string(), "Session".to_string(), Vec::new()));
+        user_class.add_function(Function::new("get_profile".to_string(), "Profile".to_string(), Vec::new()));
 
         diagram.classes.push(user_class);
         diagram.classes.push(session_class);
