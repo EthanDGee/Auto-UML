@@ -65,6 +65,7 @@ fn detect_language(path: &std::path::Path) -> Option<String> {
 fn main() {
     let args = Args::parse();
 
+    print!("HELlO");
     let temp_dir: Option<std::path::PathBuf>;
     let input_path = if let Some(git_url) = &args.git {
         let timestamp = SystemTime::now()
@@ -77,7 +78,8 @@ fn main() {
             .join(format!("cloned-{}-{}", timestamp, rand_suffix));
 
         if let Some(parent) = temp_path.parent() {
-            std::fs::create_dir_all(parent).expect("Failed to create temporary directory for clone");
+            std::fs::create_dir_all(parent)
+                .expect("Failed to create temporary directory for clone");
         }
 
         println!("Cloning {} to {}...", git_url, temp_path.display());
@@ -184,7 +186,8 @@ fn main() {
     };
 
     // pass to the exporter and write
-    fs::write(&args.destination, mermaid::generate(&final_diagram)).expect("Failed to write to destination file");
+    fs::write(&args.destination, mermaid::generate(&final_diagram))
+        .expect("Failed to write to destination file");
     println!("Diagram written to {}", args.destination);
 
     // Clean up temp directory if we cloned from git
