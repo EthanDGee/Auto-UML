@@ -3,12 +3,6 @@ use tree_sitter::Parser as TreeSitterParser;
 mod diagram;
 mod mermaid;
 
-enum Language {
-    Rust,
-    Cpp,
-    Java,
-}
-
 use clap::Parser;
 
 use crate::diagram::Diagram;
@@ -32,9 +26,23 @@ fn main() {
     let args = Args::parse();
     //  Create the parser and set language
     let mut parser = TreeSitterParser::new();
-    parser
-        .set_language(&tree_sitter_rust::LANGUAGE.into())
-        .expect("Error loading Rust grammar");
+
+    match args.lang.as_str() {
+        "rust" => {
+            parser
+                .set_language(&tree_sitter_rust::LANGUAGE.into())
+                .expect("Error loading Rust grammar");
+        }
+        "java" => {
+            parser
+                .set_language(&tree_sitter_java::LANGUAGE.into())
+                .expect("Error loading Java grammar");
+        }
+        _ => {
+            println!("Error {} is not a supported language", args.lang);
+            std::process::exit(404);
+        }
+    }
 
     // Parse source code
 
@@ -44,10 +52,9 @@ fn main() {
 
     // Get the root node and build diagram
     let root_node = tree.root_node();
-    let mut program_diagram = Diagram::new();
+    let mut program_diagram = Diagram::new(&args.lang);
     program_diagram.build(root_node, &source);
 
     // pass to the exporter and write
     let _ = fs::write(args.destination, mermaid::generate(&program_diagram));
 }
-

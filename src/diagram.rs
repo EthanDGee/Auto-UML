@@ -55,20 +55,104 @@ impl Class {
     }
 }
 
-pub struct Diagram {
-    pub classes: Vec<Class>,
+#[derive(Clone, Copy)]
+struct LangConfig {
+    class_patterns: &'static [&'static str],
+    function_patterns: &'static [&'static str],
+    variable_patterns: &'static [&'static str],
+    identifier_patterns: &'static [&'static str],
+    type_patterns: &'static [&'static str],
+    parameter_container_patterns: &'static [&'static str],
+    parameter_patterns: &'static [&'static str],
+    wrapper_patterns: &'static [&'static str],
+    skip_patterns: &'static [&'static str],
 }
 
-// Constants that store the naming patterns for various languages
-const FUNCTION_NODE_PATTERNS: [&str; 3] =
-    ["function_item", "method_declaration", "function_definition"];
-const VARIABLE_NODE_PATTERNS: [&str; 2] = ["field_declaration", "variable_declaration"];
-const CLASS_NODE_PATTERNS: [&str; 3] = ["struct_item", "class_declaration", "class_specifier"];
+const RUST_CONFIG: LangConfig = LangConfig {
+    class_patterns: &[
+        "struct_item",
+        "impl_item",
+        "class_declaration",
+        "class_specifier",
+    ],
+    function_patterns: &["function_item", "method_declaration", "function_definition"],
+    variable_patterns: &["field_declaration", "variable_declaration"],
+    identifier_patterns: &["identifier", "field_identifier", "type_identifier"],
+    type_patterns: &["type", "primitive_type"],
+    parameter_container_patterns: &["parameters", "formal_parameters"],
+    parameter_patterns: &["parameter", "formal_parameter"],
+    wrapper_patterns: &[
+        "variable_declarator",
+        "field_declaration",
+        "function_item",
+        "method_declaration",
+        "class_declaration",
+        "struct_item",
+    ],
+    skip_patterns: &[
+        "modifiers",
+        "visibility_modifier",
+        "storage_class",
+        "attribute_item",
+        "type_parameters",
+    ],
+};
+
+const JAVA_CONFIG: LangConfig = LangConfig {
+    class_patterns: &[
+        "class_declaration",
+        "class_specifier",
+        "interface_declaration",
+    ],
+    function_patterns: &[
+        "method_declaration",
+        "function_definition",
+        "constructor_declaration",
+    ],
+    variable_patterns: &["field_declaration", "variable_declaration"],
+    identifier_patterns: &["identifier", "field_identifier", "type_identifier"],
+    type_patterns: &[
+        "type",
+        "primitive_type",
+        "integral_type",
+        "floating_point_type",
+        "boolean_type",
+    ],
+    parameter_container_patterns: &["parameters", "formal_parameters"],
+    parameter_patterns: &["parameter", "formal_parameter"],
+    wrapper_patterns: &[
+        "variable_declarator",
+        "field_declaration",
+        "function_item",
+        "method_declaration",
+        "class_declaration",
+        "struct_item",
+    ],
+    skip_patterns: &[
+        "modifiers",
+        "visibility_modifier",
+        "storage_class",
+        "attribute_item",
+        "type_parameters",
+    ],
+};
+
+pub struct Diagram {
+    pub classes: Vec<Class>,
+    lang: LangConfig,
+}
 
 impl Diagram {
-    pub fn new() -> Self {
+    pub fn new(language: &str) -> Self {
+        let lang = match language {
+            "rust" => RUST_CONFIG,
+            "java" => JAVA_CONFIG,
+            _ => std::process::exit(1),
+        };
+
         Diagram {
             classes: Vec::new(),
+            lang,
         }
     }
 
@@ -79,49 +163,38 @@ impl Diagram {
     /// Recursively navigate the tree_sitter tree and build out Diagram
     pub fn navigate_node(&mut self, node: Node, source: &[u8], class_index: Option<usize>) {
         let kind = node.kind();
-        let mut current_class_index = class_index;
+        let mut next_class_index = class_index;
 
-        if CLASS_NODE_PATTERNS.contains(&kind) {
+        if self.lang.class_patterns.contains(&kind) {
             let name = self.extract_identifier(node, source);
             if !name.is_empty() {
                 // update class index to match preexisting class if already exist
                 if let Some(idx) = self.classes.iter().position(|class| class.name == name) {
-                    current_class_index = Some(idx);
+                    next_class_index = Some(idx);
                 } else {
                     // create new class and update indexes
                     self.classes.push(Class::new(name));
-                    current_class_index = Some(self.classes.len() - 1);
+                    next_class_index = Some(self.classes.len() - 1);
                 }
             }
-        } else if kind == "impl_item" {
-            // Rust specific: Implementation blocks
-            let name = self.extract_text_by_kind(node, source, "type_identifier");
-            if !name.is_empty() {
-                if let Some(idx) = self.classes.iter().position(|class| class.name == name) {
-                    current_class_index = Some(idx);
-                } else {
-                    self.classes.push(Class::new(name));
-                    current_class_index = Some(self.classes.len() - 1);
-                }
-            }
-        } else if FUNCTION_NODE_PATTERNS.contains(&kind) {
+        } else if self.lang.function_patterns.contains(&kind) {
             // Function/Method detection
             let name = self.extract_identifier(node, source);
             if !name.is_empty() {
                 let mut func = Function::new(name, self.extract_type(node, source));
                 self.extract_parameters(node, source, &mut func);
 
-                if let Some(idx) = current_class_index {
+                if let Some(idx) = next_class_index {
                     self.classes[idx].add_function(func);
                 }
             }
-        } else if VARIABLE_NODE_PATTERNS.contains(&kind) {
+        } else if self.lang.variable_patterns.contains(&kind) {
             // Field/Variable detection
             let name = self.extract_identifier(node, source);
             if !name.is_empty() {
                 let var_type = self.extract_type(node, source);
                 let var = Variable::new(name, var_type);
-                if let Some(idx) = current_class_index {
+                if let Some(idx) = next_class_index {
                     self.classes[idx].add_variable(var);
                 }
             }
@@ -131,33 +204,43 @@ impl Diagram {
         let mut cursor = node.walk();
 
         for child in node.children(&mut cursor) {
-            self.navigate_node(child, source, current_class_index);
+            self.navigate_node(child, source, next_class_index);
         }
-    }
-
-    /// Helper to extract text from a specific child kind.
-    fn extract_text_by_kind(&self, node: Node, source: &[u8], kind: &str) -> String {
-        let mut cursor = node.walk();
-        for child in node.children(&mut cursor) {
-            if child.kind() == kind {
-                return String::from_utf8_lossy(&source[child.start_byte()..child.end_byte()])
-                    .to_string();
-            }
-        }
-        String::new()
     }
 
     /// Helper to find identifiers (names) which may have different kind names across grammars.
     fn extract_identifier(&self, node: Node, source: &[u8]) -> String {
         let mut cursor = node.walk();
+        let mut best_guess = String::new();
+
         for child in node.children(&mut cursor) {
             let kind = child.kind();
-            if kind == "identifier" || kind == "field_identifier" || kind == "type_identifier" {
-                return String::from_utf8_lossy(&source[child.start_byte()..child.end_byte()])
-                    .to_string();
+
+            if self.lang.skip_patterns.contains(&kind) {
+                continue;
+            }
+
+            if self.lang.identifier_patterns.contains(&kind) {
+                if kind == "identifier" || kind == "field_identifier" {
+                    return String::from_utf8_lossy(&source[child.start_byte()..child.end_byte()])
+                        .to_string();
+                }
+                if best_guess.is_empty() {
+                    best_guess =
+                        String::from_utf8_lossy(&source[child.start_byte()..child.end_byte()])
+                            .to_string();
+                }
+            }
+
+            // Recurse into certain nodes that wrap identifiers
+            if self.lang.wrapper_patterns.contains(&kind) {
+                let name = self.extract_identifier(child, source);
+                if !name.is_empty() {
+                    return name;
+                }
             }
         }
-        String::new()
+        best_guess
     }
 
     /// Helper to extract type information from a node.
@@ -165,8 +248,13 @@ impl Diagram {
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
             let kind = child.kind();
-            // Match nodes that typically represent types
-            if kind.contains("type") || kind == "primitive_type" {
+
+            if self
+                .lang
+                .type_patterns
+                .iter()
+                .any(|&p| kind == p || (p == "type" && kind.contains("type")))
+            {
                 return String::from_utf8_lossy(&source[child.start_byte()..child.end_byte()])
                     .to_string();
             }
@@ -178,10 +266,14 @@ impl Diagram {
     fn extract_parameters(&self, node: Node, source: &[u8], func: &mut Function) {
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            if child.kind() == "parameters" || child.kind() == "formal_parameters" {
+            if self
+                .lang
+                .parameter_container_patterns
+                .contains(&child.kind())
+            {
                 let mut p_cursor = child.walk();
                 for param in child.children(&mut p_cursor) {
-                    if param.kind() == "parameter" || param.kind() == "formal_parameter" {
+                    if self.lang.parameter_patterns.contains(&param.kind()) {
                         let p_name = self.extract_identifier(param, source);
                         let p_type = self.extract_type(param, source);
                         if !p_name.is_empty() {
@@ -247,7 +339,7 @@ mod tests {
 
     #[test]
     fn test_diagram_new() {
-        let diagram = Diagram::new();
+        let diagram = Diagram::new("rust");
         assert!(diagram.classes.is_empty());
     }
 
@@ -267,7 +359,7 @@ mod tests {
         let root = tree.root_node();
         let func_node = root.child(0).unwrap();
 
-        let diagram = Diagram::new();
+        let diagram = Diagram::new("rust");
         let name = diagram.extract_identifier(func_node, source);
         assert_eq!(name, "test");
 

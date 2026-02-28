@@ -42,7 +42,7 @@ mod tests {
 
     #[test]
     fn test_mermaid_generation() {
-        let mut diagram = Diagram::new();
+        let mut diagram = Diagram::new("rust");
         let mut class = Class::new("User".to_string());
 
         class.add_variable(Variable::new("id".to_string(), "u64".to_string()));

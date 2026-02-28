@@ -74,7 +74,7 @@ fn run_test(
     let path = get_file_for_category(config, category);
     let source = std::fs::read(&path).expect(&format!("failed to read test file: {}", path));
     let tree = parser.parse(&source, None).unwrap();
-    let mut diagram = Diagram::new();
+    let mut diagram = Diagram::new(config.name);
     diagram.build(tree.root_node(), &source);
 
     validator(&diagram, config);
@@ -113,7 +113,7 @@ fn debug_java_box() {
     let source = std::fs::read(&path).expect("failed to read test file");
     let tree = parser.parse(&source, None).unwrap();
 
-    let mut diagram = Diagram::new();
+    let mut diagram = Diagram::new("java");
     diagram.build(tree.root_node(), &source);
 
     for class in &diagram.classes {
