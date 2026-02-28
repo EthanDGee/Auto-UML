@@ -198,6 +198,8 @@ impl Stitcher {
                 extension == "cpp" || extension == "h" || extension == "hpp" || extension == "cc"
             }
             "csharp" | "cs" | "c-sharp" => extension == "cs",
+            "objective-c" | "objc" => extension == "m" || extension == "h",
+            "dart" => extension == "dart",
             _ => false,
         }
     }
@@ -232,9 +234,19 @@ impl Stitcher {
                     .set_language(&tree_sitter_cpp::LANGUAGE.into())
                     .ok()?;
             }
-            "c#" | "cs" | "c-sharp" => {
+            "c#" | "cs" | "c-sharp" | "csharp" => {
                 parser
                     .set_language(&tree_sitter_c_sharp::LANGUAGE.into())
+                    .ok()?;
+            }
+            "objective-c" | "objc" => {
+                parser
+                    .set_language(&tree_sitter_objc::LANGUAGE.into())
+                    .ok()?;
+            }
+            "dart" => {
+                parser
+                    .set_language(&tree_sitter_dart::language().into())
                     .ok()?;
             }
             _ => return None,

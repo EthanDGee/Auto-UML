@@ -76,6 +76,10 @@ fn main() {
             .join("auto-uml")
             .join(format!("cloned-{}-{}", timestamp, rand_suffix));
 
+        if let Some(parent) = temp_path.parent() {
+            std::fs::create_dir_all(parent).expect("Failed to create temporary directory for clone");
+        }
+
         println!("Cloning {} to {}...", git_url, temp_path.display());
 
         let mut callbacks = git2::RemoteCallbacks::new();
@@ -180,7 +184,7 @@ fn main() {
     };
 
     // pass to the exporter and write
-    let _ = fs::write(&args.destination, mermaid::generate(&final_diagram));
+    fs::write(&args.destination, mermaid::generate(&final_diagram)).expect("Failed to write to destination file");
     println!("Diagram written to {}", args.destination);
 
     // Clean up temp directory if we cloned from git
