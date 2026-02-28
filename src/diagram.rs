@@ -1,3 +1,4 @@
+use crate::lang_config;
 use tree_sitter::Node;
 
 pub struct Variable {
@@ -55,98 +56,16 @@ impl Class {
     }
 }
 
-#[derive(Clone, Copy)]
-struct LangConfig {
-    class_patterns: &'static [&'static str],
-    function_patterns: &'static [&'static str],
-    variable_patterns: &'static [&'static str],
-    identifier_patterns: &'static [&'static str],
-    type_patterns: &'static [&'static str],
-    parameter_container_patterns: &'static [&'static str],
-    parameter_patterns: &'static [&'static str],
-    wrapper_patterns: &'static [&'static str],
-    skip_patterns: &'static [&'static str],
-}
-
-const RUST_CONFIG: LangConfig = LangConfig {
-    class_patterns: &[
-        "struct_item",
-        "impl_item",
-        "class_declaration",
-        "class_specifier",
-    ],
-    function_patterns: &["function_item", "method_declaration", "function_definition"],
-    variable_patterns: &["field_declaration", "variable_declaration"],
-    identifier_patterns: &["identifier", "field_identifier", "type_identifier"],
-    type_patterns: &["type", "primitive_type"],
-    parameter_container_patterns: &["parameters", "formal_parameters"],
-    parameter_patterns: &["parameter", "formal_parameter"],
-    wrapper_patterns: &[
-        "variable_declarator",
-        "field_declaration",
-        "function_item",
-        "method_declaration",
-        "class_declaration",
-        "struct_item",
-    ],
-    skip_patterns: &[
-        "modifiers",
-        "visibility_modifier",
-        "storage_class",
-        "attribute_item",
-        "type_parameters",
-    ],
-};
-
-const JAVA_CONFIG: LangConfig = LangConfig {
-    class_patterns: &[
-        "class_declaration",
-        "class_specifier",
-        "interface_declaration",
-    ],
-    function_patterns: &[
-        "method_declaration",
-        "function_definition",
-        "constructor_declaration",
-    ],
-    variable_patterns: &["field_declaration", "variable_declaration"],
-    identifier_patterns: &["identifier", "field_identifier", "type_identifier"],
-    type_patterns: &[
-        "type",
-        "primitive_type",
-        "integral_type",
-        "floating_point_type",
-        "boolean_type",
-    ],
-    parameter_container_patterns: &["parameters", "formal_parameters"],
-    parameter_patterns: &["parameter", "formal_parameter"],
-    wrapper_patterns: &[
-        "variable_declarator",
-        "field_declaration",
-        "function_item",
-        "method_declaration",
-        "class_declaration",
-        "struct_item",
-    ],
-    skip_patterns: &[
-        "modifiers",
-        "visibility_modifier",
-        "storage_class",
-        "attribute_item",
-        "type_parameters",
-    ],
-};
-
 pub struct Diagram {
     pub classes: Vec<Class>,
-    lang: LangConfig,
+    lang: lang_config::LangConfig,
 }
 
 impl Diagram {
     pub fn new(language: &str) -> Self {
         let lang = match language {
-            "rust" => RUST_CONFIG,
-            "java" => JAVA_CONFIG,
+            "rust" => lang_config::RUST_CONFIG,
+            "java" => lang_config::JAVA_CONFIG,
             _ => std::process::exit(1),
         };
 

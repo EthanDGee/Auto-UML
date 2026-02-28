@@ -1,6 +1,7 @@
 use std::fs;
 use tree_sitter::Parser as TreeSitterParser;
 mod diagram;
+mod lang_config;
 mod mermaid;
 
 use clap::Parser;
