@@ -1,6 +1,7 @@
 use std::fs;
 use tree_sitter::Parser as TreeSitterParser;
 mod diagram;
+mod mermaid;
 
 enum Language {
     Rust,
@@ -10,6 +11,8 @@ enum Language {
 
 use clap::Parser;
 
+use crate::diagram::Diagram;
+
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
@@ -18,25 +21,33 @@ struct Args {
     lang: String,
     /// Path to the source file
     #[arg(short, long)]
-    file_path: String,
+    source_code: String,
+
+    /// Destination file for the exporter
+    #[arg(short, long)]
+    destination: String,
 }
 
 fn main() {
     let args = Args::parse();
-    // 1. Create the parser and set language
+    //  Create the parser and set language
     let mut parser = TreeSitterParser::new();
     parser
         .set_language(&tree_sitter_rust::LANGUAGE.into())
         .expect("Error loading Rust grammar");
 
     // Parse source code
-    let source_code = fs::read_to_string(&args.file_path).expect("Failed to read file");
-    let tree = parser.parse(&source_code, None).unwrap();
 
-    // 4. Get the root node
+    let source = std::fs::read(args.source_code).expect("Failed to read source code file");
+
+    let tree = parser.parse(&source, None).unwrap();
+
+    // Get the root node and build diagram
     let root_node = tree.root_node();
+    let mut program_diagram = Diagram::new();
+    program_diagram.build(root_node, &source);
 
-    println!("{}", root_node);
-
-    // pass to the
+    // pass to the exporter and write
+    let _ = fs::write(args.destination, mermaid::generate(&program_diagram));
 }
+
