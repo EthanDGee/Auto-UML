@@ -40,7 +40,7 @@ jobs:
 
       - name: Generate UML
         run: |
-          ./target/release/auto-uml --source-code src --destination diagram.mmd
+          cargo run -- --lang rust --source-code src/ --destination diagram.mmd
           echo "### UML Diagram" > UML.md
           echo '```mermaid' >> UML.md
           cat diagram.mmd >> UML.md
