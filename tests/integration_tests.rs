@@ -76,6 +76,28 @@ const TYPESCRIPT_TESTS: LangTestConfig = LangTestConfig {
     ],
 };
 
+const OBJC_TESTS: LangTestConfig = LangTestConfig {
+    name: "objective-c",
+    path_prefix: "test_source_code_examples/objc",
+    files: [
+        ("simple_struct", "User.m"),
+        ("impl_block", "Calculator.m"),
+        ("complex_types", "ComplexData.m"),
+        ("generics", "Box.m"),
+    ],
+};
+
+const DART_TESTS: LangTestConfig = LangTestConfig {
+    name: "dart",
+    path_prefix: "test_source_code_examples/dart",
+    files: [
+        ("simple_struct", "User.dart"),
+        ("impl_block", "Calculator.dart"),
+        ("complex_types", "ComplexData.dart"),
+        ("generics", "Box.dart"),
+    ],
+};
+
 const ALL_LANGS: &[LangTestConfig] = &[
     RUST_TESTS,
     JAVA_TESTS,
@@ -83,6 +105,8 @@ const ALL_LANGS: &[LangTestConfig] = &[
     CSHARP_TESTS,
     CPP_TESTS,
     TYPESCRIPT_TESTS,
+    OBJC_TESTS,
+    DART_TESTS,
 ];
 
 fn setup_parser(lang: &str) -> Parser {
@@ -117,6 +141,16 @@ fn setup_parser(lang: &str) -> Parser {
             parser
                 .set_language(&tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into())
                 .expect("Error loading TypeScript grammar");
+        }
+        "objective-c" => {
+            parser
+                .set_language(&tree_sitter_objc::LANGUAGE.into())
+                .expect("Error loading Objective-C grammar");
+        }
+        "dart" => {
+            parser
+                .set_language(&tree_sitter_dart::language().into())
+                .expect("Error loading Dart grammar");
         }
         _ => panic!("Unsupported language: {}", lang),
     }

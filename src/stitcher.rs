@@ -5,22 +5,18 @@ use std::path::{Path, PathBuf};
 use tree_sitter::Parser as TreeSitterParser;
 
 pub struct File {
-    pub name: String,
-    pub relative_path: PathBuf,
     pub diagram: Diagram,
 }
 
 pub struct Directory {
-    pub name: String,
     pub sub_directories: Vec<Directory>,
     pub files: Vec<File>,
     pub merged_diagram: Diagram,
 }
 
 impl Directory {
-    pub fn new(name: String, lang: &str) -> Self {
+    pub fn new(lang: &str) -> Self {
         Directory {
-            name,
             sub_directories: Vec::new(),
             files: Vec::new(),
             merged_diagram: Diagram::new(lang),
@@ -118,7 +114,12 @@ impl GlobalTypeMap {
     }
 
     /// Resolution heuristic for a type T used in a class C
-    pub fn resolve(&self, type_name: &str, current_class_qualified: &str, _imports: &[String]) -> Option<String> {
+    pub fn resolve(
+        &self,
+        type_name: &str,
+        current_class_qualified: &str,
+        _imports: &[String],
+    ) -> Option<String> {
         let candidates = self.types.get(type_name)?;
 
         // 1. If only one candidate, it's likely the one (simplification for now)
@@ -164,13 +165,7 @@ impl Stitcher {
     }
 
     pub fn build(&mut self) -> Directory {
-        let root_name = self
-            .root_path
-            .file_name()
-            .unwrap_or_default()
-            .to_string_lossy()
-            .to_string();
-        let mut root_dir = Directory::new(root_name, &self.language);
+        let mut root_dir = Directory::new(&self.language);
         self.process_directory(&self.root_path.clone(), &mut root_dir);
         root_dir
     }
@@ -180,12 +175,7 @@ impl Stitcher {
             for entry in entries.flatten() {
                 let path = entry.path();
                 if path.is_dir() {
-                    let dir_name = path
-                        .file_name()
-                        .unwrap_or_default()
-                        .to_string_lossy()
-                        .to_string();
-                    let mut sub_dir = Directory::new(dir_name, &self.language);
+                    let mut sub_dir = Directory::new(&self.language);
                     self.process_directory(&path, &mut sub_dir);
                     current_dir.sub_directories.push(sub_dir);
                 } else if self.is_source_file(&path) {
@@ -204,7 +194,9 @@ impl Stitcher {
             "java" => extension == "java",
             "javascript" | "js" => extension == "js",
             "typescript" | "ts" => extension == "ts" || extension == "tsx",
-            "cpp" | "c++" => extension == "cpp" || extension == "h" || extension == "hpp" || extension == "cc",
+            "cpp" | "c++" => {
+                extension == "cpp" || extension == "h" || extension == "hpp" || extension == "cc"
+            }
             "csharp" | "cs" | "c-sharp" => extension == "cs",
             _ => false,
         }
@@ -260,7 +252,11 @@ impl Stitcher {
         // Qualify class names based on path to prevent collisions
         let path_prefix = relative_path
             .parent()
-            .map(|p| p.to_string_lossy().to_string().replace(['/', '\\', '.'], "_"))
+            .map(|p| {
+                p.to_string_lossy()
+                    .to_string()
+                    .replace(['/', '\\', '.'], "_")
+            })
             .unwrap_or_default();
 
         for class in &mut diagram.classes {
@@ -276,15 +272,7 @@ impl Stitcher {
             self.type_map.insert(original_name, class.name.clone());
         }
 
-        Some(File {
-            name: path
-                .file_name()
-                .unwrap_or_default()
-                .to_string_lossy()
-                .to_string(),
-            relative_path,
-            diagram,
-        })
+        Some(File { diagram })
     }
 }
 

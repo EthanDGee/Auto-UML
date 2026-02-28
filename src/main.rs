@@ -33,6 +33,8 @@ fn detect_language(path: &std::path::Path) -> Option<String> {
             "ts" | "tsx" => Some("typescript".to_string()),
             "cpp" | "cc" | "cxx" | "hpp" | "h" => Some("cpp".to_string()),
             "cs" => Some("csharp".to_string()),
+            "m" => Some("objective-c".to_string()),
+            "dart" => Some("dart".to_string()),
             _ => None,
         };
     }
@@ -61,12 +63,16 @@ fn main() {
     // Parse source code
     let input_path = std::path::PathBuf::from(&args.source_code);
 
-    let lang = args.lang.clone().or_else(|| {
-        detect_language(&input_path).map(|l| {
-            println!("Auto-detected language: {}", l);
-            l
+    let lang = args
+        .lang
+        .clone()
+        .or_else(|| {
+            detect_language(&input_path).map(|l| {
+                println!("Auto-detected language: {}", l);
+                l
+            })
         })
-    }).expect("Could not determine language. Please specify with --lang");
+        .expect("Could not determine language. Please specify with --lang");
 
     let final_diagram = if input_path.is_dir() {
         let mut stitcher = stitcher::Stitcher::new(input_path, lang);
@@ -107,6 +113,16 @@ fn main() {
                 parser
                     .set_language(&tree_sitter_c_sharp::LANGUAGE.into())
                     .expect("Error loading c# grammar");
+            }
+            "objective-c" | "objc" => {
+                parser
+                    .set_language(&tree_sitter_objc::LANGUAGE.into())
+                    .expect("Error loading objective-c grammar");
+            }
+            "dart" => {
+                parser
+                    .set_language(&tree_sitter_dart::language().into())
+                    .expect("Error loading dart grammar");
             }
             _ => {
                 println!("Error {} is not a supported language", lang);

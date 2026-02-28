@@ -48,6 +48,7 @@ pub struct Class {
 }
 
 impl Class {
+    #[allow(dead_code)]
     pub fn new(name: String) -> Self {
         Class {
             name,
@@ -90,6 +91,8 @@ impl Diagram {
             "csharp" => lang_config::CSHARP_CONFIG,
             "cpp" => lang_config::CPP_CONFIG,
             "typescript" => lang_config::TYPESCRIPT_CONFIG,
+            "objective-c" | "objc" => lang_config::OBJC_CONFIG,
+            "dart" => lang_config::DART_CONFIG,
             _ => std::process::exit(1),
         };
 
@@ -201,7 +204,6 @@ impl Diagram {
             if self.lang.skip_patterns.contains(&kind) {
                 continue;
             }
-
             if self.lang.identifier_patterns.contains(&kind) {
                 if kind == "identifier" || kind == "field_identifier" {
                     return String::from_utf8_lossy(&source[child.start_byte()..child.end_byte()])
@@ -398,8 +400,6 @@ mod tests {
 
         let diagram = Diagram::new("rust");
         // find the type node
-        let mut cursor = root.walk();
-        let mut type_node = None;
 
         fn find_type_node<'a>(node: Node<'a>, diagram: &Diagram) -> Option<Node<'a>> {
             if diagram.lang.type_patterns.contains(&node.kind()) || node.kind().contains("type") {
@@ -414,7 +414,7 @@ mod tests {
             None
         }
 
-        type_node = find_type_node(root, &diagram);
+        let type_node = find_type_node(root, &diagram);
         assert!(type_node.is_some());
 
         let types = diagram.extract_type(type_node.unwrap().parent().unwrap(), source);

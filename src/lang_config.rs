@@ -89,7 +89,11 @@ pub const JAVA_CONFIG: LangConfig = LangConfig {
 pub const JAVASCRIPT_CONFIG: LangConfig = LangConfig {
     class_patterns: &["class_declaration"],
     function_patterns: &["method_definition", "function_declaration"],
-    variable_patterns: &["public_field_definition", "field_definition", "variable_declarator"],
+    variable_patterns: &[
+        "public_field_definition",
+        "field_definition",
+        "variable_declarator",
+    ],
     identifier_patterns: &["identifier", "property_identifier", "type_identifier"],
     type_patterns: &[],
     parameter_container_patterns: &["formal_parameters"],
@@ -101,7 +105,11 @@ pub const JAVASCRIPT_CONFIG: LangConfig = LangConfig {
 };
 
 pub const CSHARP_CONFIG: LangConfig = LangConfig {
-    class_patterns: &["class_declaration", "interface_declaration", "struct_declaration"],
+    class_patterns: &[
+        "class_declaration",
+        "interface_declaration",
+        "struct_declaration",
+    ],
     function_patterns: &["method_declaration", "constructor_declaration"],
     variable_patterns: &["field_declaration", "variable_declarator"],
     identifier_patterns: &["identifier", "variable_identifier", "type_identifier"],
@@ -122,7 +130,11 @@ pub const CPP_CONFIG: LangConfig = LangConfig {
     type_patterns: &["primitive_type", "type_identifier"],
     parameter_container_patterns: &["parameter_list"],
     parameter_patterns: &["parameter_declaration"],
-    wrapper_patterns: &["field_declaration", "function_definition", "function_declarator"],
+    wrapper_patterns: &[
+        "field_declaration",
+        "function_definition",
+        "function_declarator",
+    ],
     skip_patterns: &["storage_class_specifier", "type_qualifier"],
     import_patterns: &["preproc_include"],
     namespace_patterns: &["namespace_definition"],
@@ -131,7 +143,11 @@ pub const CPP_CONFIG: LangConfig = LangConfig {
 pub const TYPESCRIPT_CONFIG: LangConfig = LangConfig {
     class_patterns: &["class_declaration", "interface_declaration"],
     function_patterns: &["method_definition", "function_declaration"],
-    variable_patterns: &["public_field_definition", "field_definition", "variable_declarator"],
+    variable_patterns: &[
+        "public_field_definition",
+        "field_definition",
+        "variable_declarator",
+    ],
     identifier_patterns: &["identifier", "property_identifier", "type_identifier"],
     type_patterns: &["type_annotation", "primitive_type"],
     parameter_container_patterns: &["formal_parameters"],
@@ -140,4 +156,85 @@ pub const TYPESCRIPT_CONFIG: LangConfig = LangConfig {
     skip_patterns: &[],
     import_patterns: &["import_statement"],
     namespace_patterns: &[],
+};
+
+pub const OBJC_CONFIG: LangConfig = LangConfig {
+    class_patterns: &[
+        "class_interface",
+        "category_interface",
+        "protocol_declaration",
+    ],
+    function_patterns: &["method_definition", "method_declaration"],
+    variable_patterns: &["property_declaration", "field_declaration"],
+    identifier_patterns: &["identifier", "property_name", "type_identifier"],
+    type_patterns: &[
+        "type_name",
+        "primitive_type",
+        "type_identifier",
+        "sized_type_specifier",
+    ],
+    parameter_container_patterns: &["parameter_list"],
+    parameter_patterns: &["parameter_declaration"],
+    wrapper_patterns: &[
+        "property_declaration",
+        "translation_unit",
+        "struct_declaration",
+        "struct_declarator",
+        "pointer_declarator",
+    ],
+    skip_patterns: &[
+        "property_attributes",
+        "@interface",
+        "@implementation",
+        "@property",
+        "@end",
+        "NSObject",
+        ":",
+        ";",
+        "(",
+        ")",
+        "*",
+        "sized_type_specifier",
+        "typedefed_specifier",
+        "long",
+        "class_implementation",
+        "implementation_definition",
+    ],
+    import_patterns: &["preproc_import", "preproc_include"],
+    namespace_patterns: &[],
+};
+
+pub const DART_CONFIG: LangConfig = LangConfig {
+    class_patterns: &["class_definition", "enum_definition", "mixin_definition"],
+    function_patterns: &[
+        "method_declaration",
+        "constructor_signature",
+        "function_signature",
+    ],
+    variable_patterns: &[
+        "field_declaration",
+        "variable_declaration",
+        "initialized_identifier",
+    ],
+    identifier_patterns: &["identifier", "type_identifier"],
+    type_patterns: &["type_annotation", "type_identifier", "void_type"],
+    parameter_container_patterns: &["formal_parameter_list"],
+    parameter_patterns: &[
+        "normal_formal_parameter",
+        "field_formal_parameter",
+        "formal_parameter",
+    ],
+    wrapper_patterns: &[
+        "declaration",
+        "variable_declaration_list",
+        "class_member_definition",
+        "method_signature",
+        "initialized_identifier_list",
+        "program",
+    ],
+    skip_patterns: &[
+        "final", "const", "static", "var", "late", "class", "void", "this", "{", "}", "(", ")", ";",
+    ],
+    import_patterns: &["import_directive"],
+    namespace_patterns: &["library_directive"],
 };
