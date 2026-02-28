@@ -65,7 +65,6 @@ fn detect_language(path: &std::path::Path) -> Option<String> {
 fn main() {
     let args = Args::parse();
 
-    print!("HELlO");
     let temp_dir: Option<std::path::PathBuf>;
     let input_path = if let Some(git_url) = &args.git {
         let timestamp = SystemTime::now()

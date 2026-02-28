@@ -16,6 +16,10 @@ impl Variable {
             inner_types,
         }
     }
+
+    fn print_variable(&self) {
+        println!("{} - {}", self.name, self.var_type);
+    }
 }
 
 pub struct Function {
