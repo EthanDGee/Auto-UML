@@ -1,4 +1,11 @@
-use tree_sitter::Parser;
+use std::string;
+use tree_sitter::{Node, Parser};
+mod program_data;
+use program_data::Diagram;
+
+fn build(root_node: Node) -> Diagram {
+    Diagram::new()
+}
 
 fn main() {
     // 1. Create the parser and set language
