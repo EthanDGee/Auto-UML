@@ -1,11 +1,7 @@
 use std::string;
 use tree_sitter::{Node, Parser};
-mod program_data;
-use program_data::Diagram;
-
-fn build(root_node: Node) -> Diagram {
-    Diagram::new()
-}
+mod diagram;
+use diagram::Diagram;
 
 fn main() {
     // 1. Create the parser and set language
@@ -23,4 +19,6 @@ fn main() {
     let root_node = tree.root_node();
 
     println!("{}", root_node);
+
+    // pass to the
 }
