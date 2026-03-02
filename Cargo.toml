@@ -1,6 +1,6 @@
 [package]
 name = "auto-uml"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2024"
 
 [dependencies]
@@ -15,3 +15,5 @@ tree-sitter-typescript = "0.23.2"
 tree-sitter-objc = "3.0.2"
 tree-sitter-dart = "0.0.4"
 git2 = "0.20.4"
+serde = { version = "1.0", features = ["derive"] }
+serde_yml = "0.0.12"

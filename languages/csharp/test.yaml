@@ -1,0 +1,7 @@
+name: csharp
+path_prefix: languages/csharp/examples
+files:
+  simple_struct: User.cs
+  impl_block: Calculator.cs
+  complex_types: ComplexData.cs
+  generics: Box.cs

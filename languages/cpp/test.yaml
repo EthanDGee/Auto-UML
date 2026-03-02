@@ -1,0 +1,7 @@
+name: cpp
+path_prefix: languages/cpp/examples
+files:
+  simple_struct: User.cpp
+  impl_block: Calculator.cpp
+  complex_types: ComplexData.cpp
+  generics: Box.cpp

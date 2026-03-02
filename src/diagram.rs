@@ -1,4 +1,3 @@
-use crate::lang_config;
 use crate::lang_config::LangConfig;
 use tree_sitter::Node;
 
@@ -88,17 +87,7 @@ pub struct Diagram {
 
 impl Diagram {
     pub fn new(language: &str) -> Self {
-        let lang = match language {
-            "rust" => lang_config::RUST_CONFIG,
-            "java" => lang_config::JAVA_CONFIG,
-            "javascript" => lang_config::JAVASCRIPT_CONFIG,
-            "csharp" => lang_config::CSHARP_CONFIG,
-            "cpp" => lang_config::CPP_CONFIG,
-            "typescript" => lang_config::TYPESCRIPT_CONFIG,
-            "objective-c" | "objc" => lang_config::OBJC_CONFIG,
-            "dart" => lang_config::DART_CONFIG,
-            _ => std::process::exit(1),
-        };
+        let lang = LangConfig::load(language);
 
         Diagram {
             classes: Vec::new(),
@@ -123,11 +112,11 @@ impl Diagram {
         let mut next_class_index = class_index;
         let mut active_namespace = current_namespace.to_string();
 
-        if self.lang.import_patterns.contains(&kind) {
+        if self.lang.import_patterns.iter().any(|p| p == kind) {
             let import_text =
                 String::from_utf8_lossy(&source[node.start_byte()..node.end_byte()]).to_string();
             self.imports.push(import_text);
-        } else if self.lang.namespace_patterns.contains(&kind) {
+        } else if self.lang.namespace_patterns.iter().any(|p| p == kind) {
             let name = self.extract_identifier(node, source);
             if !name.is_empty() {
                 if active_namespace.is_empty() {
@@ -136,7 +125,7 @@ impl Diagram {
                     active_namespace = format!("{}_{}", active_namespace, name);
                 }
             }
-        } else if self.lang.class_patterns.contains(&kind) {
+        } else if self.lang.class_patterns.iter().any(|p| p == kind) {
             let name = self.extract_identifier(node, source);
             if !name.is_empty() {
                 // update class index to match preexisting class if already exist
@@ -153,7 +142,7 @@ impl Diagram {
                     next_class_index = Some(self.classes.len() - 1);
                 }
             }
-        } else if self.lang.function_patterns.contains(&kind) {
+        } else if self.lang.function_patterns.iter().any(|p| p == kind) {
             // Function/Method detection
             let name = self.extract_identifier(node, source);
             if !name.is_empty() {
@@ -171,7 +160,7 @@ impl Diagram {
                     self.classes[idx].add_function(func);
                 }
             }
-        } else if self.lang.variable_patterns.contains(&kind) {
+        } else if self.lang.variable_patterns.iter().any(|p| p == kind) {
             // Field/Variable detection
             let name = self.extract_identifier(node, source);
             if !name.is_empty() {
@@ -205,10 +194,10 @@ impl Diagram {
         for child in node.children(&mut cursor) {
             let kind = child.kind();
 
-            if self.lang.skip_patterns.contains(&kind) {
+            if self.lang.skip_patterns.iter().any(|p| p == kind) {
                 continue;
             }
-            if self.lang.identifier_patterns.contains(&kind) {
+            if self.lang.identifier_patterns.iter().any(|p| p == kind) {
                 if kind == "identifier" || kind == "field_identifier" {
                     return String::from_utf8_lossy(&source[child.start_byte()..child.end_byte()])
                         .to_string();
@@ -221,7 +210,7 @@ impl Diagram {
             }
 
             // Recurse into certain nodes that wrap identifiers
-            if self.lang.wrapper_patterns.contains(&kind) {
+            if self.lang.wrapper_patterns.iter().any(|p| p == kind) {
                 let name = self.extract_identifier(child, source);
                 if !name.is_empty() {
                     return name;
@@ -241,7 +230,7 @@ impl Diagram {
                 .lang
                 .type_patterns
                 .iter()
-                .any(|&p| kind == p || (p == "type" && kind.contains("type")))
+                .any(|p| kind == p || (p == "type" && kind.contains("type")))
             {
                 let full_type =
                     String::from_utf8_lossy(&source[child.start_byte()..child.end_byte()])
@@ -278,11 +267,17 @@ impl Diagram {
             if self
                 .lang
                 .parameter_container_patterns
-                .contains(&child.kind())
+                .iter()
+                .any(|p| p == &child.kind())
             {
                 let mut p_cursor = child.walk();
                 for param in child.children(&mut p_cursor) {
-                    if self.lang.parameter_patterns.contains(&param.kind()) {
+                    if self
+                        .lang
+                        .parameter_patterns
+                        .iter()
+                        .any(|p| p == &param.kind())
+                    {
                         let p_name = self.extract_identifier(param, source);
                         let types = self.extract_type(param, source);
                         let main_type =
@@ -406,7 +401,7 @@ mod tests {
         // find the type node
 
         fn find_type_node<'a>(node: Node<'a>, diagram: &Diagram) -> Option<Node<'a>> {
-            if diagram.lang.type_patterns.contains(&node.kind()) || node.kind().contains("type") {
+            if diagram.lang.type_patterns.iter().any(|p| p == node.kind()) || node.kind().contains("type") {
                 return Some(node);
             }
             let mut cursor = node.walk();

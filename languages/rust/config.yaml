@@ -1,0 +1,42 @@
+class_patterns:
+  - struct_item
+  - impl_item
+  - class_declaration
+  - class_specifier
+function_patterns:
+  - function_item
+  - method_declaration
+  - function_definition
+variable_patterns:
+  - field_declaration
+  - variable_declaration
+identifier_patterns:
+  - identifier
+  - field_identifier
+  - type_identifier
+type_patterns:
+  - type
+  - primitive_type
+parameter_container_patterns:
+  - parameters
+  - formal_parameters
+parameter_patterns:
+  - parameter
+  - formal_parameter
+wrapper_patterns:
+  - variable_declarator
+  - field_declaration
+  - function_item
+  - method_declaration
+  - class_declaration
+  - struct_item
+skip_patterns:
+  - modifiers
+  - visibility_modifier
+  - storage_class
+  - attribute_item
+  - type_parameters
+import_patterns:
+  - use_declaration
+namespace_patterns:
+  - mod_item

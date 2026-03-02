@@ -1,0 +1,29 @@
+class_patterns:
+  - class_declaration
+  - interface_declaration
+  - struct_declaration
+function_patterns:
+  - method_declaration
+  - constructor_declaration
+variable_patterns:
+  - field_declaration
+  - variable_declarator
+identifier_patterns:
+  - identifier
+  - variable_identifier
+  - type_identifier
+type_patterns:
+  - type
+  - predefined_type
+parameter_container_patterns:
+  - parameter_list
+parameter_patterns:
+  - parameter
+wrapper_patterns:
+  - variable_declaration
+skip_patterns:
+  - modifier
+import_patterns:
+  - using_directive
+namespace_patterns:
+  - namespace_declaration

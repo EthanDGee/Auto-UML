@@ -1,0 +1,25 @@
+class_patterns:
+  - class_declaration
+function_patterns:
+  - method_definition
+  - function_declaration
+variable_patterns:
+  - public_field_definition
+  - field_definition
+  - variable_declarator
+identifier_patterns:
+  - identifier
+  - property_identifier
+  - type_identifier
+type_patterns: []
+parameter_container_patterns:
+  - formal_parameters
+parameter_patterns:
+  - identifier
+wrapper_patterns:
+  - lexical_declaration
+  - variable_declaration
+skip_patterns: []
+import_patterns:
+  - import_statement
+namespace_patterns: []

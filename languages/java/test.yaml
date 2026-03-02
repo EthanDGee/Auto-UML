@@ -1,0 +1,7 @@
+name: java
+path_prefix: languages/java/examples
+files:
+  simple_struct: User.java
+  impl_block: Calculator.java
+  complex_types: ComplexData.java
+  generics: Box.java

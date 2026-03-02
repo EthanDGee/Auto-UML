@@ -326,7 +326,7 @@ mod tests {
     #[test]
     fn test_stitcher_build_real_dir() {
         let mut root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        root.push("test_source_code_examples");
+        root.push("languages");
         root.push("rust");
 
         let mut stitcher = Stitcher::new(root, "rust".to_string());

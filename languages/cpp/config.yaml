@@ -1,0 +1,31 @@
+class_patterns:
+  - class_specifier
+  - struct_specifier
+function_patterns:
+  - function_definition
+  - declaration
+variable_patterns:
+  - field_declaration
+  - declaration
+identifier_patterns:
+  - identifier
+  - field_identifier
+  - type_identifier
+type_patterns:
+  - primitive_type
+  - type_identifier
+parameter_container_patterns:
+  - parameter_list
+parameter_patterns:
+  - parameter_declaration
+wrapper_patterns:
+  - field_declaration
+  - function_definition
+  - function_declarator
+skip_patterns:
+  - storage_class_specifier
+  - type_qualifier
+import_patterns:
+  - preproc_include
+namespace_patterns:
+  - namespace_definition

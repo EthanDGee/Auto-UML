@@ -1,0 +1,50 @@
+class_patterns:
+  - class_definition
+  - enum_definition
+  - mixin_definition
+function_patterns:
+  - method_declaration
+  - constructor_signature
+  - function_signature
+variable_patterns:
+  - field_declaration
+  - variable_declaration
+  - initialized_identifier
+identifier_patterns:
+  - identifier
+  - type_identifier
+type_patterns:
+  - type_annotation
+  - type_identifier
+  - void_type
+parameter_container_patterns:
+  - formal_parameter_list
+parameter_patterns:
+  - normal_formal_parameter
+  - field_formal_parameter
+  - formal_parameter
+wrapper_patterns:
+  - declaration
+  - variable_declaration_list
+  - class_member_definition
+  - method_signature
+  - initialized_identifier_list
+  - program
+skip_patterns:
+  - "final"
+  - "const"
+  - "static"
+  - "var"
+  - "late"
+  - "class"
+  - "void"
+  - "this"
+  - "{"
+  - "}"
+  - "("
+  - ")"
+  - ";"
+import_patterns:
+  - import_directive
+namespace_patterns:
+  - library_directive

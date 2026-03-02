@@ -1,0 +1,7 @@
+name: javascript
+path_prefix: languages/javascript/examples
+files:
+  simple_struct: User.js
+  impl_block: Calculator.js
+  complex_types: ComplexData.js
+  generics: Box.js

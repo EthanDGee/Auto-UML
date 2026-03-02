@@ -1,0 +1,7 @@
+name: typescript
+path_prefix: languages/typescript/examples
+files:
+  simple_struct: User.ts
+  impl_block: Calculator.ts
+  complex_types: ComplexData.ts
+  generics: Box.ts

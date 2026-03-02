@@ -1,0 +1,7 @@
+name: dart
+path_prefix: languages/dart/examples
+files:
+  simple_struct: User.dart
+  impl_block: Calculator.dart
+  complex_types: ComplexData.dart
+  generics: Box.dart

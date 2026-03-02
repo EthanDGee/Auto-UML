@@ -1,0 +1,50 @@
+class_patterns:
+  - class_interface
+  - category_interface
+  - protocol_declaration
+function_patterns:
+  - method_definition
+  - method_declaration
+variable_patterns:
+  - property_declaration
+  - field_declaration
+identifier_patterns:
+  - identifier
+  - property_name
+  - type_identifier
+type_patterns:
+  - type_name
+  - primitive_type
+  - type_identifier
+  - sized_type_specifier
+parameter_container_patterns:
+  - parameter_list
+parameter_patterns:
+  - parameter_declaration
+wrapper_patterns:
+  - property_declaration
+  - translation_unit
+  - struct_declaration
+  - struct_declarator
+  - pointer_declarator
+skip_patterns:
+  - property_attributes
+  - "@interface"
+  - "@implementation"
+  - "@property"
+  - "@end"
+  - NSObject
+  - ":"
+  - ";"
+  - "("
+  - ")"
+  - "*"
+  - sized_type_specifier
+  - typedefed_specifier
+  - long
+  - class_implementation
+  - implementation_definition
+import_patterns:
+  - preproc_import
+  - preproc_include
+namespace_patterns: []

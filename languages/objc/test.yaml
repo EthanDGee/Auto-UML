@@ -1,0 +1,7 @@
+name: objective-c
+path_prefix: languages/objc/examples
+files:
+  simple_struct: User.m
+  impl_block: Calculator.m
+  complex_types: ComplexData.m
+  generics: Box.m

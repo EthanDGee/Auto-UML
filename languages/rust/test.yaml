@@ -1,0 +1,7 @@
+name: rust
+path_prefix: languages/rust/examples
+files:
+  simple_struct: simple_struct.rs
+  impl_block: impl_blocks.rs
+  complex_types: complex_types.rs
+  generics: generics.rs
