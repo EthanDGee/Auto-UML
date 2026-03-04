@@ -1,6 +1,8 @@
+use include_dir::{include_dir, Dir};
 use serde::Deserialize;
-use std::fs;
 use std::path::Path;
+
+static LANG_DIR: Dir<'_> = include_dir!("$STAGED_LANGS_DIR");
 
 #[derive(Clone, Deserialize, Debug, Default)]
 pub struct LangConfig {
@@ -19,6 +21,17 @@ pub struct LangConfig {
 }
 
 impl LangConfig {
+    pub fn all_configs() -> Vec<(String, Self)> {
+        let mut configs = Vec::new();
+        for dir in LANG_DIR.dirs() {
+            if let Some(lang_name) = dir.path().file_name().and_then(|n| n.to_str()) {
+                let config = Self::load(lang_name);
+                configs.push((lang_name.to_string(), config));
+            }
+        }
+        configs
+    }
+
     pub fn load(language: &str) -> Self {
         let lang_dir = match language.to_lowercase().as_str() {
             "rust" => "rust",
@@ -32,17 +45,19 @@ impl LangConfig {
             _ => language,
         };
 
-        let config_path = Path::new("languages").join(lang_dir).join("config.yaml");
+        let config_path = Path::new(lang_dir).join("config.yaml");
 
-        if let Ok(content) = fs::read_to_string(&config_path) {
-            match serde_yml::from_str::<LangConfig>(&content) {
-                Ok(config) => return config,
-                Err(e) => {
-                    eprintln!("Error parsing config for {}: {}", language, e);
+        if let Some(file) = LANG_DIR.get_file(config_path) {
+            if let Some(content) = file.contents_utf8() {
+                match serde_yml::from_str::<LangConfig>(content) {
+                    Ok(config) => return config,
+                    Err(e) => {
+                        eprintln!("Error parsing embedded config for {}: {}", language, e);
+                    }
                 }
             }
         } else {
-            eprintln!("Warning: Could not find config at {:?}", config_path);
+            eprintln!("Warning: Could not find embedded config for language: {}", language);
         }
 
         // Return a default empty config if loading fails

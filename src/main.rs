@@ -36,17 +36,10 @@ fn detect_language(path: &std::path::Path) -> Option<String> {
     if path.is_file() {
         let ext = path.extension()?.to_str()?.to_lowercase();
 
-        // Check each language directory's config.yaml
-        let languages_dir = std::path::Path::new("languages");
-        if let Ok(entries) = std::fs::read_dir(languages_dir) {
-            for entry in entries.flatten() {
-                if entry.path().is_dir() {
-                    let lang_name = entry.file_name().to_string_lossy().to_string();
-                    let config = crate::lang_config::LangConfig::load(&lang_name);
-                    if config.file_extensions.iter().any(|e| e == &ext) {
-                        return Some(lang_name);
-                    }
-                }
+        // Check each embedded language config
+        for (lang_name, config) in crate::lang_config::LangConfig::all_configs() {
+            if config.file_extensions.iter().any(|e| e == &ext) {
+                return Some(lang_name);
             }
         }
         return None;
