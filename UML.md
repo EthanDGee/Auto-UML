@@ -1,18 +1,18 @@
-### UML Diagram
 ```mermaid
 classDiagram
     class LangConfig {
-        +class_patterns: &'static [&'static str]
-        +function_patterns: &'static [&'static str]
-        +variable_patterns: &'static [&'static str]
-        +identifier_patterns: &'static [&'static str]
-        +type_patterns: &'static [&'static str]
-        +parameter_container_patterns: &'static [&'static str]
-        +parameter_patterns: &'static [&'static str]
-        +wrapper_patterns: &'static [&'static str]
-        +skip_patterns: &'static [&'static str]
-        +import_patterns: &'static [&'static str]
-        +namespace_patterns: &'static [&'static str]
+        +class_patterns: Vec~String~
+        +function_patterns: Vec~String~
+        +variable_patterns: Vec~String~
+        +identifier_patterns: Vec~String~
+        +type_patterns: Vec~String~
+        +parameter_container_patterns: Vec~String~
+        +parameter_patterns: Vec~String~
+        +wrapper_patterns: Vec~String~
+        +skip_patterns: Vec~String~
+        +import_patterns: Vec~String~
+        +namespace_patterns: Vec~String~
+        +load(language: &str) Self
     }
     class Edge {
         +source: String
@@ -86,6 +86,7 @@ classDiagram
         +lang: Option~String~
         +source_code: Option~String~
         +git: Option~String~
+        +no_mermaid: bool
         +destination: String
     }
     Function --> Variable
@@ -100,4 +101,5 @@ classDiagram
     Stitcher --> GlobalTypeMap
     Stitcher ..> Directory
     Stitcher ..> File
+
 ```
