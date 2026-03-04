@@ -35,17 +35,12 @@ jobs:
             target/
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: Build auto-uml
+      - name: Build auto-uml to be latest version
         run: cargo build --release
 
       - name: Generate UML
         run: |
-          cargo run -- --lang rust --source-code src/ --destination diagram.mmd
-          echo "### UML Diagram" > UML.md
-          echo '```mermaid' >> UML.md
-          cat diagram.mmd >> UML.md
-          echo '```' >> UML.md
-          rm diagram.mmd
+          cargo run -- --lang rust --source-code src/ --destination UML.md 
 
       - name: Commit and push changes
         uses: stefanzweifel/git-auto-commit-action@v5

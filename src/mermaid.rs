@@ -1,3 +1,5 @@
+use std::fmt::format;
+
 use crate::diagram;
 
 #[allow(dead_code)]
@@ -159,6 +161,10 @@ pub fn generate(uml_diagram: &diagram::Diagram) -> String {
     }
 
     output
+}
+
+pub fn generate_code_block(uml_diagram: &diagram::Diagram) -> String {
+    format!("```mermaid\n{}\n```", generate(uml_diagram))
 }
 
 #[cfg(test)]

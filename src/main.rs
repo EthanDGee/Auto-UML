@@ -23,6 +23,9 @@ struct Args {
     #[arg(long, conflicts_with = "source_code")]
     git: Option<String>,
 
+    #[arg(short, long, action = clap::ArgAction::SetTrue)]
+    no_mermaid: bool,
+
     /// Destination file for the exporter
     #[arg(short, long)]
     destination: String,
@@ -65,6 +68,7 @@ fn detect_language(path: &std::path::Path) -> Option<String> {
 fn main() {
     let args = Args::parse();
 
+    // Handle the optional remote git directory
     let temp_dir: Option<std::path::PathBuf>;
     let input_path = if let Some(git_url) = &args.git {
         let timestamp = SystemTime::now()
@@ -105,10 +109,12 @@ fn main() {
         temp_dir = Some(temp_path.clone());
         temp_path
     } else {
+        // handle simple local code path
         temp_dir = None;
         std::path::PathBuf::from(args.source_code.as_ref().expect("source_code required"))
     };
 
+    // define language or if flag not set attempt to detect language
     let lang = args
         .lang
         .clone()
@@ -120,6 +126,7 @@ fn main() {
         })
         .expect("Could not determine language. Please specify with --lang");
 
+    // create diagram
     let final_diagram = if input_path.is_dir() {
         let mut stitcher = stitcher::Stitcher::new(input_path, lang);
         let mut directory = stitcher.build();
@@ -167,7 +174,7 @@ fn main() {
             }
             "dart" => {
                 parser
-                    .set_language(&tree_sitter_dart::language().into())
+                    .set_language(&tree_sitter_dart::language())
                     .expect("Error loading dart grammar");
             }
             _ => {
@@ -184,9 +191,13 @@ fn main() {
         program_diagram
     };
 
+    let mermaid: String = match args.no_mermaid {
+        true => mermaid::generate(&final_diagram),
+        false => mermaid::generate_code_block(&final_diagram),
+    };
+
     // pass to the exporter and write
-    fs::write(&args.destination, mermaid::generate(&final_diagram))
-        .expect("Failed to write to destination file");
+    fs::write(&args.destination, mermaid).expect("Failed to write to destination file");
     println!("Diagram written to {}", args.destination);
 
     // Clean up temp directory if we cloned from git
