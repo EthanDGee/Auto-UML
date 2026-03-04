@@ -1,3 +1,6 @@
+file_extensions:
+  - ts
+  - tsx
 class_patterns:
   - class_declaration
   - interface_declaration

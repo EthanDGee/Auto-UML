@@ -1,3 +1,5 @@
+file_extensions:
+  - dart
 class_patterns:
   - class_definition
   - enum_definition

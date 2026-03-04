@@ -4,6 +4,7 @@ use std::path::Path;
 
 #[derive(Clone, Deserialize, Debug, Default)]
 pub struct LangConfig {
+    pub file_extensions: Vec<String>,
     pub class_patterns: Vec<String>,
     pub function_patterns: Vec<String>,
     pub variable_patterns: Vec<String>,

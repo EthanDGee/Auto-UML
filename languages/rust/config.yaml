@@ -1,3 +1,5 @@
+file_extensions:
+  - rs
 class_patterns:
   - struct_item
   - impl_item

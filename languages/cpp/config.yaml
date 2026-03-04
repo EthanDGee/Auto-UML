@@ -1,3 +1,9 @@
+file_extensions:
+  - cpp
+  - cc
+  - cxx
+  - hpp
+  - h
 class_patterns:
   - class_specifier
   - struct_specifier

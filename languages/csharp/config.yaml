@@ -1,3 +1,5 @@
+file_extensions:
+  - cs
 class_patterns:
   - class_declaration
   - interface_declaration

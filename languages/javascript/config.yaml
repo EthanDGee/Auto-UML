@@ -1,3 +1,5 @@
+file_extensions:
+  - js
 class_patterns:
   - class_declaration
 function_patterns:

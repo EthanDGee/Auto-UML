@@ -1,3 +1,6 @@
+file_extensions:
+  - m
+  - h
 class_patterns:
   - class_interface
   - category_interface
