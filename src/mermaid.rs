@@ -1,5 +1,3 @@
-use std::fmt::format;
-
 use crate::diagram;
 
 #[allow(dead_code)]

@@ -23,11 +23,12 @@ struct Args {
     #[arg(long, conflicts_with = "source_code")]
     git: Option<String>,
 
-    #[arg(short, long, action = clap::ArgAction::SetTrue)]
+    /// Outputs the computed mermaid diagram without surrounding markdown code block
+    #[arg(long, action = clap::ArgAction::SetTrue)]
     no_mermaid: bool,
 
-    /// Destination file for the exporter
-    #[arg(short, long)]
+    /// Write destination file for the exporter
+    #[arg(long)]
     destination: String,
 }
 
@@ -75,10 +76,9 @@ fn main() {
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_secs();
-        let rand_suffix: u16 = rand_simple();
         let temp_path = std::env::temp_dir()
             .join("auto-uml")
-            .join(format!("cloned-{}-{}", timestamp, rand_suffix));
+            .join(format!("-cloned-{}", timestamp));
 
         if let Some(parent) = temp_path.parent() {
             std::fs::create_dir_all(parent)
@@ -205,17 +205,4 @@ fn main() {
         println!("Cleaning up temporary directory...");
         std::fs::remove_dir_all(&temp_path).ok();
     }
-}
-
-fn rand_simple() -> u16 {
-    use std::collections::hash_map::RandomState;
-    use std::hash::{BuildHasher, Hasher};
-    let mut hasher = RandomState::new().build_hasher();
-    hasher.write_u8(
-        std::time::SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .subsec_nanos() as u8,
-    );
-    (hasher.finish() % 65536) as u16
 }

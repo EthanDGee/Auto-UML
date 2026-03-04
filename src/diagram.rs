@@ -15,10 +15,6 @@ impl Variable {
             inner_types,
         }
     }
-
-    fn print_variable(&self) {
-        println!("{} - {}", self.name, self.var_type);
-    }
 }
 
 pub struct Function {
@@ -401,7 +397,9 @@ mod tests {
         // find the type node
 
         fn find_type_node<'a>(node: Node<'a>, diagram: &Diagram) -> Option<Node<'a>> {
-            if diagram.lang.type_patterns.iter().any(|p| p == node.kind()) || node.kind().contains("type") {
+            if diagram.lang.type_patterns.iter().any(|p| p == node.kind())
+                || node.kind().contains("type")
+            {
                 return Some(node);
             }
             let mut cursor = node.walk();
