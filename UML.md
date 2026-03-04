@@ -1,6 +1,7 @@
 ```mermaid
 classDiagram
     class LangConfig {
+        +file_extensions: Vec~String~
         +class_patterns: Vec~String~
         +function_patterns: Vec~String~
         +variable_patterns: Vec~String~
@@ -24,7 +25,6 @@ classDiagram
         +var_type: String
         +inner_types: Vec~String~
         +new(name: String, var_type: String, inner_types: Vec~String~) Self
-        +print_variable() void
     }
     class Function {
         +name: String
@@ -76,6 +76,7 @@ classDiagram
         +root_path: PathBuf
         +language: String
         +type_map: GlobalTypeMap
+        +config: crate::lang_config::LangConfig
         +new(root_path: PathBuf, language: String) Self
         +build() Directory
         +process_directory(current_path: &Path, current_dir: &mut Directory) void
