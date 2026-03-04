@@ -34,18 +34,22 @@ struct Args {
 
 fn detect_language(path: &std::path::Path) -> Option<String> {
     if path.is_file() {
-        let ext = path.extension()?.to_str()?;
-        return match ext.to_lowercase().as_str() {
-            "rs" => Some("rust".to_string()),
-            "java" => Some("java".to_string()),
-            "js" => Some("javascript".to_string()),
-            "ts" | "tsx" => Some("typescript".to_string()),
-            "cpp" | "cc" | "cxx" | "hpp" | "h" => Some("cpp".to_string()),
-            "cs" => Some("csharp".to_string()),
-            "m" => Some("objective-c".to_string()),
-            "dart" => Some("dart".to_string()),
-            _ => None,
-        };
+        let ext = path.extension()?.to_str()?.to_lowercase();
+
+        // Check each language directory's config.yaml
+        let languages_dir = std::path::Path::new("languages");
+        if let Ok(entries) = std::fs::read_dir(languages_dir) {
+            for entry in entries.flatten() {
+                if entry.path().is_dir() {
+                    let lang_name = entry.file_name().to_string_lossy().to_string();
+                    let config = crate::lang_config::LangConfig::load(&lang_name);
+                    if config.file_extensions.iter().any(|e| e == &ext) {
+                        return Some(lang_name);
+                    }
+                }
+            }
+        }
+        return None;
     }
 
     if path.is_dir() {

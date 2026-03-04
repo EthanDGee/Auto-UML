@@ -81,7 +81,7 @@ fn setup_parser(lang: &str) -> Parser {
         }
         "dart" => {
             parser
-                .set_language(&tree_sitter_dart::language().into())
+                .set_language(&tree_sitter_dart::language())
                 .expect("Error loading Dart grammar");
         }
         _ => panic!("Unsupported language: {}", lang),
@@ -90,13 +90,10 @@ fn setup_parser(lang: &str) -> Parser {
 }
 
 fn get_file_for_category(config: &LangTestConfig, category: &str) -> String {
-    let file = config
-        .files
-        .get(category)
-        .expect(&format!(
-            "No file defined for category {} in {}",
-            category, config.name
-        ));
+    let file = config.files.get(category).expect(&format!(
+        "No file defined for category {} in {}",
+        category, config.name
+    ));
     format!("{}/{}", config.path_prefix, file)
 }
 
@@ -134,7 +131,7 @@ fn test_stitcher_integration() {
     // Verify all classes were found with qualified names
     // Path-based qualification: models_User, models_Post, auth_User, App
     let class_names: Vec<String> = diagram.classes.iter().map(|c| c.name.clone()).collect();
-    
+
     assert!(class_names.contains(&"models_User".to_string()));
     assert!(class_names.contains(&"models_Post".to_string()));
     assert!(class_names.contains(&"auth_User".to_string()));
@@ -142,12 +139,20 @@ fn test_stitcher_integration() {
 
     // Verify type resolution in 'App'
     let app_class = diagram.classes.iter().find(|c| c.name == "App").unwrap();
-    
+
     // latest_post: Post -> resolved to models_Post
-    let latest_post_var = app_class.variables.iter().find(|v| v.name == "latest_post").unwrap();
+    let latest_post_var = app_class
+        .variables
+        .iter()
+        .find(|v| v.name == "latest_post")
+        .unwrap();
     assert_eq!(latest_post_var.var_type, "models_Post");
 
-    let current_user_var = app_class.variables.iter().find(|v| v.name == "current_user").unwrap();
+    let current_user_var = app_class
+        .variables
+        .iter()
+        .find(|v| v.name == "current_user")
+        .unwrap();
     assert!(current_user_var.var_type == "models_User" || current_user_var.var_type == "auth_User");
 
     // Verify edge generation in Mermaid
@@ -229,7 +234,10 @@ fn test_all_generics() {
 #[test]
 fn test_mermaid_smoke() {
     let configs = load_test_configs();
-    let rust_config = configs.iter().find(|c| c.name == "rust").expect("Rust config not found");
+    let rust_config = configs
+        .iter()
+        .find(|c| c.name == "rust")
+        .expect("Rust config not found");
     // Just verify it doesn't crash and produces basic output for the first language
     run_test(rust_config, "simple_struct", |diagram, _| {
         let output = generate(diagram);

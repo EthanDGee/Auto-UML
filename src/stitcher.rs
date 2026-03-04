@@ -153,14 +153,17 @@ pub struct Stitcher {
     pub root_path: PathBuf,
     pub language: String,
     pub type_map: GlobalTypeMap,
+    pub config: crate::lang_config::LangConfig,
 }
 
 impl Stitcher {
     pub fn new(root_path: PathBuf, language: String) -> Self {
+        let config = crate::lang_config::LangConfig::load(&language);
         Stitcher {
             root_path,
             language,
             type_map: GlobalTypeMap::new(),
+            config,
         }
     }
 
@@ -189,19 +192,10 @@ impl Stitcher {
 
     fn is_source_file(&self, path: &Path) -> bool {
         let extension = path.extension().and_then(|s| s.to_str()).unwrap_or("");
-        match self.language.to_lowercase().as_str() {
-            "rust" => extension == "rs",
-            "java" => extension == "java",
-            "javascript" | "js" => extension == "js",
-            "typescript" | "ts" => extension == "ts" || extension == "tsx",
-            "cpp" | "c++" => {
-                extension == "cpp" || extension == "h" || extension == "hpp" || extension == "cc"
-            }
-            "csharp" | "cs" | "c-sharp" => extension == "cs",
-            "objective-c" | "objc" => extension == "m" || extension == "h",
-            "dart" => extension == "dart",
-            _ => false,
-        }
+        self.config
+            .file_extensions
+            .iter()
+            .any(|ext| ext == extension)
     }
 
     fn process_file(&mut self, path: &Path) -> Option<File> {
