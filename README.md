@@ -120,8 +120,8 @@ All of the following tests were done using hyperfine with 100 runs.
 
 ### Results
 
-| Codebase                                                     | Commit                                                                                          | Mean runtime | Standard Deviation | Min     | Max     |
-| ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------- | ------------ | ------------------ | ------- | ------- |
-| This Codebase (src/)                                         | [b3d5d7](https://github.com/anomalyco/auto-UML/commit/b2d5d7e9e560fa1c5fe4dcf2436a36357c0c548c) | 36.2 ms      | 5.3 ms             | 23.5 ms | 45.6 ms |
-| [CoreUtils](https://github.com/uutils/coreutils.git)         | [f336d](https://github.com/uutils/coreutils/commit/f335d14a8368aac01fb27518c29732f0bb8292fe)    | 4.231 s      | 0.069 s            | 4.116 s | 4.413 s |
-| [Chart.js](https://github.com/chartjs/Chart.js) (JavaScript) | [a15356](https://github.com/chartjs/Chart.js/commit/a153556861074e827358446ec937555ac58c3d11)   | 1.063 s      | 0.021 s            | 1.021 s | 1.149 s |
+| Codebase                                                     | Commit                                                                                          | Mean runtime | Standard Deviation | Min      | Max      |
+| ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------- | ------------ | ------------------ | -------- | -------- |
+| This Codebase (src/)                                         | [b3d5d7](https://github.com/anomalyco/auto-UML/commit/b2d5d7e9e560fa1c5fe4dcf2436a36357c0c548c) | 28.9 ms      | 4.4 ms             | 17.3 ms  | 38.1 ms  |
+| [CoreUtils](https://github.com/uutils/coreutils.git)         | [f336d](https://github.com/uutils/coreutils/commit/f335d14a8368aac01fb27518c29732f0bb8292fe)    | 2.815 s      | 0.272 s            | 1.980 s  | 3.578 s  |
+| [Chart.js](https://github.com/chartjs/Chart.js) (JavaScript) | [a15356](https://github.com/chartjs/Chart.js/commit/a153556861074e827358446ec937555ac58c3d11)   | 682.2 ms     | 87.9 ms            | 467.2 ms | 872.7 ms |
