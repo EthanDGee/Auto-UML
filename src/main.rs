@@ -180,7 +180,7 @@ fn main() {
 
     // create diagram
     let final_diagram = if input_path.is_dir() {
-        let mut stitcher = stitcher::Stitcher::new(input_path, config, parser);
+        let mut stitcher = stitcher::Stitcher::new(input_path, &config, parser);
         let mut directory = stitcher.build();
         directory.merge_all();
         directory.resolve_types(&stitcher.type_map);
@@ -188,7 +188,7 @@ fn main() {
     } else {
         // Single file mode
         let source = std::fs::read(&input_path).expect("Failed to read source code file");
-        let mut program_diagram = Diagram::new(config);
+        let mut program_diagram = Diagram::new(&config);
         program_diagram.build(&source, &mut parser);
         program_diagram
     };

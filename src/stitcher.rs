@@ -5,18 +5,18 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use tree_sitter::Parser as TreeSitterParser;
 
-pub struct File {
-    pub diagram: Diagram,
+pub struct File<'a> {
+    pub diagram: Diagram<'a>,
 }
 
-pub struct Directory {
-    pub sub_directories: Vec<Directory>,
-    pub files: Vec<File>,
-    pub merged_diagram: Diagram,
+pub struct Directory<'a> {
+    pub sub_directories: Vec<Directory<'a>>,
+    pub files: Vec<File<'a>>,
+    pub merged_diagram: Diagram<'a>,
 }
 
-impl Directory {
-    pub fn new(lang: LangConfig) -> Self {
+impl<'a> Directory<'a> {
+    pub fn new(lang: &'a LangConfig) -> Self {
         Directory {
             sub_directories: Vec::new(),
             files: Vec::new(),
@@ -150,15 +150,15 @@ impl GlobalTypeMap {
     }
 }
 
-pub struct Stitcher {
+pub struct Stitcher<'a> {
     pub root_path: PathBuf,
     pub type_map: GlobalTypeMap,
-    pub config: crate::lang_config::LangConfig,
+    pub config: &'a crate::lang_config::LangConfig,
     pub parser: TreeSitterParser,
 }
 
-impl Stitcher {
-    pub fn new(root_path: PathBuf, config: LangConfig, parser: TreeSitterParser) -> Self {
+impl<'a> Stitcher<'a> {
+    pub fn new(root_path: PathBuf, config: &'a LangConfig, parser: TreeSitterParser) -> Self {
         Stitcher {
             root_path,
             type_map: GlobalTypeMap::new(),
@@ -167,18 +167,18 @@ impl Stitcher {
         }
     }
 
-    pub fn build(&mut self) -> Directory {
-        let mut root_dir = Directory::new(self.config.clone());
+    pub fn build(&mut self) -> Directory<'a> {
+        let mut root_dir = Directory::new(self.config);
         self.process_directory(&self.root_path.clone(), &mut root_dir);
         root_dir
     }
 
-    fn process_directory(&mut self, current_path: &Path, current_dir: &mut Directory) {
+    fn process_directory(&mut self, current_path: &Path, current_dir: &mut Directory<'a>) {
         if let Ok(entries) = fs::read_dir(current_path) {
             for entry in entries.flatten() {
                 let path = entry.path();
                 if path.is_dir() {
-                    let mut sub_dir = Directory::new(self.config.clone());
+                    let mut sub_dir = Directory::new(self.config);
                     self.process_directory(&path, &mut sub_dir);
                     current_dir.sub_directories.push(sub_dir);
                 } else if self.is_source_file(&path) {
@@ -198,10 +198,10 @@ impl Stitcher {
             .any(|ext| ext == extension)
     }
 
-    fn process_file(&mut self, path: &Path) -> Option<File> {
+    fn process_file(&mut self, path: &Path) -> Option<File<'a>> {
         let source = fs::read(path).ok()?;
 
-        let mut diagram = Diagram::new(self.config.clone());
+        let mut diagram = Diagram::new(self.config);
         diagram.build(&source, &mut self.parser);
 
         let relative_path = path
@@ -253,14 +253,14 @@ mod tests {
     #[test]
     fn test_is_source_file() {
         let rust_config = LangConfig::load("rust");
-        let stitcher = Stitcher::new(PathBuf::from("."), rust_config, setup_parser());
+        let stitcher = Stitcher::new(PathBuf::from("."), &rust_config, setup_parser());
         assert!(stitcher.is_source_file(Path::new("test.rs")));
         assert!(!stitcher.is_source_file(Path::new("test.txt")));
 
         let java_config = LangConfig::load("java");
         let mut java_parser = Parser::new();
         java_parser.set_language(&tree_sitter_java::LANGUAGE.into()).unwrap();
-        let stitcher_java = Stitcher::new(PathBuf::from("."), java_config, java_parser);
+        let stitcher_java = Stitcher::new(PathBuf::from("."), &java_config, java_parser);
         assert!(stitcher_java.is_source_file(Path::new("Test.java")));
     }
 
@@ -291,7 +291,7 @@ mod tests {
         root.push("rust");
 
         let rust_config = LangConfig::load("rust");
-        let mut stitcher = Stitcher::new(root, rust_config, setup_parser());
+        let mut stitcher = Stitcher::new(root, &rust_config, setup_parser());
         let mut directory = stitcher.build();
         directory.merge_all();
         directory.resolve_types(&stitcher.type_map);

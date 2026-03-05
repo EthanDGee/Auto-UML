@@ -75,14 +75,14 @@ impl Class {
     }
 }
 
-pub struct Diagram {
+pub struct Diagram<'a> {
     pub classes: Vec<Class>,
     pub imports: Vec<String>,
-    lang: LangConfig,
+    lang: &'a LangConfig,
 }
 
-impl Diagram {
-    pub fn new(lang: LangConfig) -> Self {
+impl<'a> Diagram<'a> {
+    pub fn new(lang: &'a LangConfig) -> Self {
         Diagram {
             classes: Vec::new(),
             imports: Vec::new(),
@@ -364,7 +364,7 @@ mod tests {
     #[test]
     fn test_diagram_new() {
         let rust_config = LangConfig::load("rust");
-        let diagram = Diagram::new(rust_config);
+        let diagram = Diagram::new(&rust_config);
         assert!(diagram.classes.is_empty());
     }
 
@@ -374,7 +374,7 @@ mod tests {
         let source = b"fn test(val: i32) -> bool { true }";
         let rust_config = LangConfig::load("rust");
 
-        let mut diagram = Diagram::new(rust_config);
+        let mut diagram = Diagram::new(&rust_config);
         diagram.build(source, &mut parser);
         
         // Find the class or function we just built
@@ -404,7 +404,7 @@ mod tests {
         // but let's try to find the node.
 
         let rust_config = LangConfig::load("rust");
-        let diagram = Diagram::new(rust_config);
+        let diagram = Diagram::new(&rust_config);
         // find the type node
 
         fn find_type_node<'a>(node: Node<'a>, diagram: &Diagram) -> Option<Node<'a>> {

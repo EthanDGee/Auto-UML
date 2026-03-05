@@ -176,7 +176,7 @@ mod tests {
     #[test]
     fn test_mermaid_generation() {
         let rust_config = LangConfig::load("rust");
-        let mut diagram = Diagram::new(rust_config);
+        let mut diagram = Diagram::new(&rust_config);
         let mut class = Class::new("User".to_string());
 
         class.add_variable(Variable::new(
@@ -205,7 +205,7 @@ mod tests {
     #[test]
     fn test_mermaid_edge_generation() {
         let lang = LangConfig::load("rust");
-        let mut diagram = Diagram::new(lang);
+        let mut diagram = Diagram::new(&lang);
         let mut user_class = Class::new("User".to_string());
         let session_class = Class::new("Session".to_string());
         let profile_class = Class::new("Profile".to_string());

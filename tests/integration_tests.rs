@@ -109,7 +109,7 @@ fn run_test(
     let path = get_file_for_category(config, category);
     let source = std::fs::read(&path).expect(&format!("failed to read test file: {}", path));
     let lang_config = LangConfig::load(&config.name);
-    let mut diagram = Diagram::new(lang_config);
+    let mut diagram = Diagram::new(&lang_config);
     diagram.build(&source, &mut parser);
 
     validator(&diagram, config);
@@ -122,7 +122,7 @@ fn test_stitcher_integration() {
     root.push("stitch_test");
 
     let lang_config = LangConfig::load("rust");
-    let mut stitcher = Stitcher::new(root, lang_config, setup_parser("rust"));
+    let mut stitcher = Stitcher::new(root, &lang_config, setup_parser("rust"));
     let mut directory = stitcher.build();
     directory.merge_all();
     directory.resolve_types(&stitcher.type_map);
