@@ -13,6 +13,7 @@ classDiagram
         +skip_patterns: Vec~String~
         +import_patterns: Vec~String~
         +namespace_patterns: Vec~String~
+        +all_configs() Vec~(String, Self)~
         +load(language: &str) Self
     }
     class Edge {
@@ -47,24 +48,15 @@ classDiagram
     class Diagram {
         +classes: Vec~Class~
         +imports: Vec~String~
-        +lang: LangConfig
-        +new(language: &str) Self
-        +build(root_node: Node, source: &[u8]) void
-        +navigate_node(node: Node, source: &[u8], class_index: Option~usize~, current_namespace: &str) void
-        +extract_identifier(node: Node, source: &[u8]) String
-        +extract_type(node: Node, source: &[u8]) Vec~String~
-        +extract_parameters(node: Node, source: &[u8], func: &mut Function) void
+        +lang: &'a LangConfig
     }
     class File {
-        +diagram: Diagram
+        +diagram: Diagram~'a~
     }
     class Directory {
-        +sub_directories: Vec~Directory~
-        +files: Vec~File~
-        +merged_diagram: Diagram
-        +new(lang: &str) Self
-        +merge_all() void
-        +resolve_types(type_map: &GlobalTypeMap) void
+        +sub_directories: Vec~Directory<'a>~
+        +files: Vec~File<'a>~
+        +merged_diagram: Diagram~'a~
     }
     class GlobalTypeMap {
         +types: HashMap~String, Vec<String>~
@@ -74,14 +66,9 @@ classDiagram
     }
     class Stitcher {
         +root_path: PathBuf
-        +language: String
         +type_map: GlobalTypeMap
-        +config: crate::lang_config::LangConfig
-        +new(root_path: PathBuf, language: String) Self
-        +build() Directory
-        +process_directory(current_path: &Path, current_dir: &mut Directory) void
-        +is_source_file(path: &Path) bool
-        +process_file(path: &Path) Option~File~
+        +config: &'a crate::lang_config::LangConfig
+        +parser: TreeSitterParser
     }
     class Args {
         +lang: Option~String~
@@ -94,13 +81,8 @@ classDiagram
     Class --> Function
     Class --> Variable
     Diagram --> Class
-    Diagram --> LangConfig
     File --> Diagram
-    Directory --> Directory
-    Directory --> File
     Directory --> Diagram
     Stitcher --> GlobalTypeMap
-    Stitcher ..> Directory
-    Stitcher ..> File
 
 ```
