@@ -1,8 +1,11 @@
 use auto_uml::diagram::Diagram;
+use auto_uml::lang_config::LangConfig;
 use auto_uml::mermaid::generate;
+use auto_uml::stitcher::Stitcher;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::fs;
+use std::path::PathBuf;
 use tree_sitter::Parser;
 
 /// Configuration for a specific language's integration tests.
@@ -105,15 +108,12 @@ fn run_test(
     let mut parser = setup_parser(&config.name);
     let path = get_file_for_category(config, category);
     let source = std::fs::read(&path).expect(&format!("failed to read test file: {}", path));
-    let tree = parser.parse(&source, None).unwrap();
-    let mut diagram = Diagram::new(&config.name);
-    diagram.build(tree.root_node(), &source);
+    let lang_config = LangConfig::load(&config.name);
+    let mut diagram = Diagram::new(lang_config);
+    diagram.build(&source, &mut parser);
 
     validator(&diagram, config);
 }
-
-use auto_uml::stitcher::Stitcher;
-use std::path::PathBuf;
 
 #[test]
 fn test_stitcher_integration() {
@@ -121,7 +121,8 @@ fn test_stitcher_integration() {
     root.push("languages");
     root.push("stitch_test");
 
-    let mut stitcher = Stitcher::new(root, "rust".to_string());
+    let lang_config = LangConfig::load("rust");
+    let mut stitcher = Stitcher::new(root, lang_config, setup_parser("rust"));
     let mut directory = stitcher.build();
     directory.merge_all();
     directory.resolve_types(&stitcher.type_map);

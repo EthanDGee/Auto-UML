@@ -1,4 +1,4 @@
-use auto_uml::lang_config::LangConfig;
+use crate::lang_config::LangConfig;
 use std::fs;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tree_sitter::Parser as TreeSitterParser;
@@ -7,7 +7,6 @@ mod lang_config;
 mod mermaid;
 mod stitcher;
 use clap::{ArgGroup, Parser};
-use tree_sitter_dart::language;
 
 use crate::diagram::Diagram;
 
@@ -63,6 +62,57 @@ fn detect_language(path: &std::path::Path) -> Option<String> {
         }
     }
     None
+}
+
+fn get_parser(lang: &str) -> TreeSitterParser {
+    let mut parser = TreeSitterParser::new();
+    match lang.to_lowercase().as_str() {
+        "rust" => {
+            parser
+                .set_language(&tree_sitter_rust::LANGUAGE.into())
+                .expect("Error loading Rust grammar");
+        }
+        "java" => {
+            parser
+                .set_language(&tree_sitter_java::LANGUAGE.into())
+                .expect("Error loading Java grammar");
+        }
+        "js" | "javascript" => {
+            parser
+                .set_language(&tree_sitter_javascript::LANGUAGE.into())
+                .expect("Error loading javascript grammar");
+        }
+        "ts" | "typescript" => {
+            parser
+                .set_language(&tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into())
+                .expect("Error loading typescript grammar");
+        }
+        "c++" | "cpp" => {
+            parser
+                .set_language(&tree_sitter_cpp::LANGUAGE.into())
+                .expect("Error loading c++ grammar");
+        }
+        "c#" | "cs" | "c-sharp" | "csharp" => {
+            parser
+                .set_language(&tree_sitter_c_sharp::LANGUAGE.into())
+                .expect("Error loading c# grammar");
+        }
+        "objective-c" | "objc" => {
+            parser
+                .set_language(&tree_sitter_objc::LANGUAGE.into())
+                .expect("Error loading objective-c grammar");
+        }
+        "dart" => {
+            parser
+                .set_language(&tree_sitter_dart::language())
+                .expect("Error loading dart grammar");
+        }
+        _ => {
+            println!("Error {} is not a supported language", lang);
+            std::process::exit(404);
+        }
+    }
+    parser
 }
 
 fn main() {
@@ -126,71 +176,23 @@ fn main() {
         .expect("Could not determine language. Please specify with --lang");
 
     let config: LangConfig = LangConfig::load(&lang);
+    let mut parser = get_parser(&lang);
 
     // create diagram
     let final_diagram = if input_path.is_dir() {
-        let mut stitcher = stitcher::Stitcher::new(input_path, &config);
+        let mut stitcher = stitcher::Stitcher::new(input_path, config, parser);
         let mut directory = stitcher.build();
         directory.merge_all();
         directory.resolve_types(&stitcher.type_map);
         directory.merged_diagram
     } else {
         // Single file mode
-        let mut parser = TreeSitterParser::new();
-        match lang.to_lowercase().as_str() {
-            "rust" => {
-                parser
-                    .set_language(&tree_sitter_rust::LANGUAGE.into())
-                    .expect("Error loading Rust grammar");
-            }
-            "java" => {
-                parser
-                    .set_language(&tree_sitter_java::LANGUAGE.into())
-                    .expect("Error loading Java grammar");
-            }
-            "js" | "javascript" => {
-                parser
-                    .set_language(&tree_sitter_javascript::LANGUAGE.into())
-                    .expect("Error loading javascript grammar");
-            }
-            "ts" | "typescript" => {
-                parser
-                    .set_language(&tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into())
-                    .expect("Error loading typescript grammar");
-            }
-            "c++" | "cpp" => {
-                parser
-                    .set_language(&tree_sitter_cpp::LANGUAGE.into())
-                    .expect("Error loading c++ grammar");
-            }
-            "c#" | "cs" | "c-sharp" | "csharp" => {
-                parser
-                    .set_language(&tree_sitter_c_sharp::LANGUAGE.into())
-                    .expect("Error loading c# grammar");
-            }
-            "objective-c" | "objc" => {
-                parser
-                    .set_language(&tree_sitter_objc::LANGUAGE.into())
-                    .expect("Error loading objective-c grammar");
-            }
-            "dart" => {
-                parser
-                    .set_language(&tree_sitter_dart::language())
-                    .expect("Error loading dart grammar");
-            }
-            _ => {
-                println!("Error {} is not a supported language", lang);
-                std::process::exit(404);
-            }
-        }
-
         let source = std::fs::read(&input_path).expect("Failed to read source code file");
-        let tree = parser.parse(&source, None).unwrap();
-        let root_node = tree.root_node();
-        let mut program_diagram = Diagram::new(&config);
-        program_diagram.build(root_node, &source);
+        let mut program_diagram = Diagram::new(config);
+        program_diagram.build(&source, &mut parser);
         program_diagram
     };
+
 
     let mermaid: String = match args.no_mermaid {
         true => mermaid::generate(&final_diagram),

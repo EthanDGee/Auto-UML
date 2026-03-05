@@ -154,14 +154,16 @@ pub struct Stitcher {
     pub root_path: PathBuf,
     pub type_map: GlobalTypeMap,
     pub config: crate::lang_config::LangConfig,
+    pub parser: TreeSitterParser,
 }
 
 impl Stitcher {
-    pub fn new(root_path: PathBuf, config: LangConfig) -> Self {
+    pub fn new(root_path: PathBuf, config: LangConfig, parser: TreeSitterParser) -> Self {
         Stitcher {
             root_path,
             type_map: GlobalTypeMap::new(),
             config,
+            parser,
         }
     }
 
@@ -198,55 +200,9 @@ impl Stitcher {
 
     fn process_file(&mut self, path: &Path) -> Option<File> {
         let source = fs::read(path).ok()?;
-        let mut parser = TreeSitterParser::new();
 
-        match self.language.to_lowercase().as_str() {
-            "rust" => {
-                parser
-                    .set_language(&tree_sitter_rust::LANGUAGE.into())
-                    .ok()?;
-            }
-            "java" => {
-                parser
-                    .set_language(&tree_sitter_java::LANGUAGE.into())
-                    .ok()?;
-            }
-            "js" | "javascript" => {
-                parser
-                    .set_language(&tree_sitter_javascript::LANGUAGE.into())
-                    .ok()?;
-            }
-            "ts" | "typescript" => {
-                parser
-                    .set_language(&tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into())
-                    .ok()?;
-            }
-            "c++" | "cpp" => {
-                parser
-                    .set_language(&tree_sitter_cpp::LANGUAGE.into())
-                    .ok()?;
-            }
-            "c#" | "cs" | "c-sharp" | "csharp" => {
-                parser
-                    .set_language(&tree_sitter_c_sharp::LANGUAGE.into())
-                    .ok()?;
-            }
-            "objective-c" | "objc" => {
-                parser
-                    .set_language(&tree_sitter_objc::LANGUAGE.into())
-                    .ok()?;
-            }
-            "dart" => {
-                parser
-                    .set_language(&tree_sitter_dart::language().into())
-                    .ok()?;
-            }
-            _ => return None,
-        }
-
-        let tree = parser.parse(&source, None)?;
         let mut diagram = Diagram::new(self.config.clone());
-        diagram.build(tree.root_node(), &source);
+        diagram.build(&source, &mut self.parser);
 
         let relative_path = path
             .strip_prefix(&self.root_path)
@@ -284,14 +240,27 @@ impl Stitcher {
 mod tests {
     use super::*;
     use std::path::PathBuf;
+    use tree_sitter::Parser;
+
+    fn setup_parser() -> Parser {
+        let mut parser = Parser::new();
+        parser
+            .set_language(&tree_sitter_rust::LANGUAGE.into())
+            .expect("Error loading Rust grammar");
+        parser
+    }
 
     #[test]
     fn test_is_source_file() {
-        let stitcher = Stitcher::new(PathBuf::from("."), "rust".to_string());
+        let rust_config = LangConfig::load("rust");
+        let stitcher = Stitcher::new(PathBuf::from("."), rust_config, setup_parser());
         assert!(stitcher.is_source_file(Path::new("test.rs")));
         assert!(!stitcher.is_source_file(Path::new("test.txt")));
 
-        let stitcher_java = Stitcher::new(PathBuf::from("."), "java".to_string());
+        let java_config = LangConfig::load("java");
+        let mut java_parser = Parser::new();
+        java_parser.set_language(&tree_sitter_java::LANGUAGE.into()).unwrap();
+        let stitcher_java = Stitcher::new(PathBuf::from("."), java_config, java_parser);
         assert!(stitcher_java.is_source_file(Path::new("Test.java")));
     }
 
@@ -321,7 +290,8 @@ mod tests {
         root.push("languages");
         root.push("rust");
 
-        let mut stitcher = Stitcher::new(root, "rust".to_string());
+        let rust_config = LangConfig::load("rust");
+        let mut stitcher = Stitcher::new(root, rust_config, setup_parser());
         let mut directory = stitcher.build();
         directory.merge_all();
         directory.resolve_types(&stitcher.type_map);

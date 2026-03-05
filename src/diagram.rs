@@ -90,8 +90,9 @@ impl Diagram {
         }
     }
 
-    pub fn build(&mut self, root_node: Node, source: &[u8]) {
-        self.navigate_node(root_node, source, None, "");
+    pub fn build(&mut self, source: &[u8], parser: &mut tree_sitter::Parser) {
+        let tree = parser.parse(source, None).unwrap();
+        self.navigate_node(tree.root_node(), source, None, "");
     }
 
     /// Recursively navigate the tree_sitter tree and build out Diagram
@@ -371,12 +372,20 @@ mod tests {
     fn test_helpers_direct() {
         let mut parser = setup_parser();
         let source = b"fn test(val: i32) -> bool { true }";
+        let rust_config = LangConfig::load("rust");
+
+        let mut diagram = Diagram::new(rust_config);
+        diagram.build(source, &mut parser);
+        
+        // Find the class or function we just built
+        // In this case it's a top level function, so it might not be in a class
+        // but navigate_node should have picked it up if function_patterns match.
+        // Actually test_helpers_direct was testing extract_identifier directly.
+        
         let tree = parser.parse(source, None).unwrap();
         let root = tree.root_node();
         let func_node = root.child(0).unwrap();
-        let rust_config = LangConfig::load("rust");
-
-        let diagram = Diagram::new(rust_config);
+        
         let name = diagram.extract_identifier(func_node, source);
         assert_eq!(name, "test");
 
