@@ -1,4 +1,5 @@
 use crate::diagram::Diagram;
+use crate::lang_config::LangConfig;
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -15,7 +16,7 @@ pub struct Directory {
 }
 
 impl Directory {
-    pub fn new(lang: &str) -> Self {
+    pub fn new(lang: LangConfig) -> Self {
         Directory {
             sub_directories: Vec::new(),
             files: Vec::new(),
@@ -151,24 +152,21 @@ impl GlobalTypeMap {
 
 pub struct Stitcher {
     pub root_path: PathBuf,
-    pub language: String,
     pub type_map: GlobalTypeMap,
     pub config: crate::lang_config::LangConfig,
 }
 
 impl Stitcher {
-    pub fn new(root_path: PathBuf, language: String) -> Self {
-        let config = crate::lang_config::LangConfig::load(&language);
+    pub fn new(root_path: PathBuf, config: LangConfig) -> Self {
         Stitcher {
             root_path,
-            language,
             type_map: GlobalTypeMap::new(),
             config,
         }
     }
 
     pub fn build(&mut self) -> Directory {
-        let mut root_dir = Directory::new(&self.language);
+        let mut root_dir = Directory::new(self.config.clone());
         self.process_directory(&self.root_path.clone(), &mut root_dir);
         root_dir
     }
@@ -178,7 +176,7 @@ impl Stitcher {
             for entry in entries.flatten() {
                 let path = entry.path();
                 if path.is_dir() {
-                    let mut sub_dir = Directory::new(&self.language);
+                    let mut sub_dir = Directory::new(self.config.clone());
                     self.process_directory(&path, &mut sub_dir);
                     current_dir.sub_directories.push(sub_dir);
                 } else if self.is_source_file(&path) {
@@ -247,7 +245,7 @@ impl Stitcher {
         }
 
         let tree = parser.parse(&source, None)?;
-        let mut diagram = Diagram::new(&self.language);
+        let mut diagram = Diagram::new(self.config.clone());
         diagram.build(tree.root_node(), &source);
 
         let relative_path = path

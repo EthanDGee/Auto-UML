@@ -1,4 +1,4 @@
-use include_dir::{include_dir, Dir};
+use include_dir::{Dir, include_dir};
 use serde::Deserialize;
 use std::path::Path;
 
@@ -57,7 +57,10 @@ impl LangConfig {
                 }
             }
         } else {
-            eprintln!("Warning: Could not find embedded config for language: {}", language);
+            eprintln!(
+                "Warning: Could not find embedded config for language: {}",
+                language
+            );
         }
 
         // Return a default empty config if loading fails

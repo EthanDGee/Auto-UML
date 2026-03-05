@@ -1,3 +1,4 @@
+use auto_uml::lang_config::LangConfig;
 use std::fs;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tree_sitter::Parser as TreeSitterParser;
@@ -6,6 +7,7 @@ mod lang_config;
 mod mermaid;
 mod stitcher;
 use clap::{ArgGroup, Parser};
+use tree_sitter_dart::language;
 
 use crate::diagram::Diagram;
 
@@ -123,9 +125,11 @@ fn main() {
         })
         .expect("Could not determine language. Please specify with --lang");
 
+    let config: LangConfig = LangConfig::load(&lang);
+
     // create diagram
     let final_diagram = if input_path.is_dir() {
-        let mut stitcher = stitcher::Stitcher::new(input_path, lang);
+        let mut stitcher = stitcher::Stitcher::new(input_path, &config);
         let mut directory = stitcher.build();
         directory.merge_all();
         directory.resolve_types(&stitcher.type_map);
@@ -183,7 +187,7 @@ fn main() {
         let source = std::fs::read(&input_path).expect("Failed to read source code file");
         let tree = parser.parse(&source, None).unwrap();
         let root_node = tree.root_node();
-        let mut program_diagram = Diagram::new(&lang);
+        let mut program_diagram = Diagram::new(&config);
         program_diagram.build(root_node, &source);
         program_diagram
     };

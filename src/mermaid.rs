@@ -169,12 +169,14 @@ pub fn generate_code_block(uml_diagram: &diagram::Diagram) -> String {
 mod tests {
     use crate::{
         diagram::{Class, Diagram, Function, Variable},
+        lang_config::LangConfig,
         mermaid::generate,
     };
 
     #[test]
     fn test_mermaid_generation() {
-        let mut diagram = Diagram::new("rust");
+        let rust_config = LangConfig::load("rust");
+        let mut diagram = Diagram::new(rust_config);
         let mut class = Class::new("User".to_string());
 
         class.add_variable(Variable::new(
@@ -202,7 +204,8 @@ mod tests {
 
     #[test]
     fn test_mermaid_edge_generation() {
-        let mut diagram = Diagram::new("rust");
+        let lang = LangConfig::load("rust");
+        let mut diagram = Diagram::new(lang);
         let mut user_class = Class::new("User".to_string());
         let session_class = Class::new("Session".to_string());
         let profile_class = Class::new("Profile".to_string());

@@ -82,9 +82,7 @@ pub struct Diagram {
 }
 
 impl Diagram {
-    pub fn new(language: &str) -> Self {
-        let lang = LangConfig::load(language);
-
+    pub fn new(lang: LangConfig) -> Self {
         Diagram {
             classes: Vec::new(),
             imports: Vec::new(),
@@ -299,6 +297,15 @@ mod tests {
     use super::*;
     use tree_sitter::Parser;
 
+    // helper function to set up parser for tests
+    fn setup_parser() -> Parser {
+        let mut parser = Parser::new();
+        parser
+            .set_language(&tree_sitter_rust::LANGUAGE.into())
+            .expect("Error loading Rust grammar");
+        parser
+    }
+
     #[test]
     fn test_variable_new() {
         let var = Variable::new("x".to_string(), "i32".to_string(), Vec::new());
@@ -355,16 +362,9 @@ mod tests {
 
     #[test]
     fn test_diagram_new() {
-        let diagram = Diagram::new("rust");
+        let rust_config = LangConfig::load("rust");
+        let diagram = Diagram::new(rust_config);
         assert!(diagram.classes.is_empty());
-    }
-
-    fn setup_parser() -> Parser {
-        let mut parser = Parser::new();
-        parser
-            .set_language(&tree_sitter_rust::LANGUAGE.into())
-            .expect("Error loading Rust grammar");
-        parser
     }
 
     #[test]
@@ -374,8 +374,9 @@ mod tests {
         let tree = parser.parse(source, None).unwrap();
         let root = tree.root_node();
         let func_node = root.child(0).unwrap();
+        let rust_config = LangConfig::load("rust");
 
-        let diagram = Diagram::new("rust");
+        let diagram = Diagram::new(rust_config);
         let name = diagram.extract_identifier(func_node, source);
         assert_eq!(name, "test");
 
@@ -393,7 +394,8 @@ mod tests {
         // We'll just test the helper directly with mock data if needed,
         // but let's try to find the node.
 
-        let diagram = Diagram::new("rust");
+        let rust_config = LangConfig::load("rust");
+        let diagram = Diagram::new(rust_config);
         // find the type node
 
         fn find_type_node<'a>(node: Node<'a>, diagram: &Diagram) -> Option<Node<'a>> {
