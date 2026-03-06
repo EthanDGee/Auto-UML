@@ -66,4 +66,17 @@ impl LangConfig {
         // Return a default empty config if loading fails
         LangConfig::default()
     }
+
+    pub fn list_languages() -> Vec<&'static str> {
+        vec![
+            "rust",
+            "java",
+            "javascript",
+            "typescript",
+            "cpp",
+            "csharp",
+            "objective-c",
+            "dart",
+        ]
+    }
 }

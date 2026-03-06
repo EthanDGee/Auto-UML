@@ -1,7 +1,15 @@
 [package]
 name = "auto-uml"
-version = "0.4.1"
+version = "0.4.3"
 edition = "2024"
+license = "MIT"
+description = "An automatic UML diagram generator for a variety of programming languages"
+readme = "README.md"
+documentation = "https://github.com/EthanDGee/Auto-UML"
+repository = "https://github.com/EthanDGee/Auto-UML"
+keywords = ["cli", "cli-tool", "UML", "documentation"]
+categories = ["command-line-utilities"]
+build = "build.rs"
 
 [dependencies]
 clap = { version = "4.5.60", features = ["derive"] }

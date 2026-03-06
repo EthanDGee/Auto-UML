@@ -13,6 +13,10 @@ use tree_sitter::Parser as TreeSitterParser;
 #[command(version, about, long_about = None)]
 #[command(group(ArgGroup::new("source").args(&["source_code", "git"])))]
 struct Args {
+    /// List available programming languages
+    #[arg(long, action = clap::ArgAction::SetTrue)]
+    list_languages: bool,
+
     /// Programming language (optional, auto-detected if omitted)
     #[arg(short, long)]
     lang: Option<String>,
@@ -116,6 +120,15 @@ fn get_parser(lang: &str) -> TreeSitterParser {
 
 fn main() {
     let args = Args::parse();
+
+    // list languages and exit early
+    if args.list_languages {
+        println!("Available programming languages:");
+        for lang in LangConfig::list_languages() {
+            println!(" - {}", lang);
+        }
+        return;
+    }
 
     // Handle the optional remote git directory
     let temp_dir: Option<std::path::PathBuf>;
