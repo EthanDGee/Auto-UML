@@ -15,6 +15,7 @@ classDiagram
         +namespace_patterns: Vec~String~
         +all_configs() Vec~(String, Self)~
         +load(language: &str) Self
+        +list_languages() Vec~&'static str~
     }
     class Edge {
         +source: String
@@ -71,8 +72,9 @@ classDiagram
         +parser: TreeSitterParser
     }
     class Args {
+        +list_languages: bool
         +lang: Option~String~
-        +source_code: Option~String~
+        +source_code: String
         +git: Option~String~
         +no_mermaid: bool
         +destination: String
