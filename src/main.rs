@@ -1,14 +1,13 @@
-use crate::lang_config::LangConfig;
-use std::fs;
-use std::time::{SystemTime, UNIX_EPOCH};
-use tree_sitter::Parser as TreeSitterParser;
 mod diagram;
 mod lang_config;
 mod mermaid;
 mod stitcher;
-use clap::{ArgGroup, Parser};
-
 use crate::diagram::Diagram;
+use crate::lang_config::LangConfig;
+use clap::{ArgGroup, Parser};
+use std::fs;
+use std::time::{SystemTime, UNIX_EPOCH};
+use tree_sitter::Parser as TreeSitterParser;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -29,7 +28,7 @@ struct Args {
     no_mermaid: bool,
 
     /// Write destination file for the exporter
-    #[arg(long)]
+    #[arg(short, long, default_value("UML.md"))]
     destination: String,
 }
 
@@ -192,7 +191,6 @@ fn main() {
         program_diagram.build(&source, &mut parser);
         program_diagram
     };
-
 
     let mermaid: String = match args.no_mermaid {
         true => mermaid::generate(&final_diagram),
