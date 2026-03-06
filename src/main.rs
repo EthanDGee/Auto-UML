@@ -11,14 +11,14 @@ use tree_sitter::Parser as TreeSitterParser;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
-#[command(group(ArgGroup::new("source").required(true).args(&["source_code", "git"])))]
+#[command(group(ArgGroup::new("source").args(&["source_code", "git"])))]
 struct Args {
     /// Programming language (optional, auto-detected if omitted)
     #[arg(short, long)]
     lang: Option<String>,
     /// Path to the local source file or directory
-    #[arg(short, long, conflicts_with = "git")]
-    source_code: Option<String>,
+    #[arg(short, long, conflicts_with = "git", default_value("."))]
+    source_code: String,
     /// Remote git repository URL to clone and analyze
     #[arg(long, conflicts_with = "source_code")]
     git: Option<String>,
@@ -159,7 +159,7 @@ fn main() {
     } else {
         // handle simple local code path
         temp_dir = None;
-        std::path::PathBuf::from(args.source_code.as_ref().expect("source_code required"))
+        std::path::PathBuf::from(args.source_code)
     };
 
     // define language or if flag not set attempt to detect language
