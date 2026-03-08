@@ -1,0 +1,14 @@
+classDiagram
+    class Calculator {
+        +add(a: i32, b: i32) i32
+        +clear() void
+    }
+    class AdvancedCalculator {
+        -base: Calculator
+        +multiply(a: f64, b: f64) f64
+    }
+    class Config~T~ {
+        -data: T
+        +get() &T
+    }
+    AdvancedCalculator --> Calculator

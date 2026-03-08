@@ -1,0 +1,5 @@
+classDiagram
+    class Box~T~ {
+        -inner: T
+        +get() T
+    }

@@ -1,0 +1,6 @@
+classDiagram
+    class Box~T~ {
+        -inner: T
+        +new(inner: T) Box~T~
+        +get(self) T
+    }

@@ -1,0 +1,11 @@
+classDiagram
+    class ComplexData {
+        -raw_bytes: Vec~u8~
+        -metadata: HashMap~String, String~
+        +process(mode: String) Result~bool, Error~
+        +update(value: T) void
+    }
+    class Secret {
+        -key: String
+        +hide() void
+    }

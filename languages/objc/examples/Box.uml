@@ -1,0 +1,6 @@
+classDiagram
+    class Box {
+        +inner: id
+        +initWithInner(inner: id) instancetype
+        +get() id
+    }

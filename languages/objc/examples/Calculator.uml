@@ -1,0 +1,5 @@
+classDiagram
+    class Calculator {
+        +add(a: int, b: int) int
+        +clear() void
+    }
