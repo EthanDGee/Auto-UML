@@ -37,19 +37,19 @@ if [ ! -d "ReactiveUI" ]; then
   git clone --depth 1 https://github.com/reactiveui/ReactiveUI
 fi
 
-if [ ! -d "authass" ]; then
+if [ ! -d "authpass" ]; then
   git clone --depth 1 https://github.com/authpass/authpass.git
 fi
 
 if [ ! -d "jupyterlab" ]; then
-  git clone --depth 1 ttps://github.com/authpass/authpass.git
+  git clone --depth 1 https://github.com/jupyterlab/jupyterlab
 fi
 
-if [ ! -d "bitwarden-server"]; then
+if [ ! -d "bitwarden-server" ]; then
   git clone --depth 1 https://github.com/bitwarden/server bitwarden-server
 fi
 
-if [! -d "Platypus"]; then
+if [ ! -d "Platypus" ]; then
   git clone --depth 1 https://github.com/sveinbjornt/Platypus
 fi
 
