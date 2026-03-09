@@ -162,6 +162,7 @@ fn main() {
 
         let mut options = git2::FetchOptions::new();
         options.remote_callbacks(callbacks);
+        options.depth(1);
 
         git2::Repository::clone(git_url, &temp_path).expect("Failed to clone repository");
 
