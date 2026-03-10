@@ -136,22 +136,42 @@ classDiagram
 
 ## Benchmark
 
-Auto-UML is designed from the ground up to be extremely fast. Since it works with a per-file LR representation that is merged recursively it can also work on extremely large code bases. Most code bases can be done in milliseconds with the larger ones taking  seconds. Making it a great addition to your CI/CD pipeline or for personal use.
+Auto-UML is designed from the ground up to be extremely fast. Since it works with a per-file LR representation that is merged recursively it can also work on extremely large code bases. Most code bases can be done in milliseconds with the larger ones taking seconds. Making it a great addition to your CI/CD pipeline or for personal use.
+
+> **Disclaimer**: All benchmarks were performed on the latest main branch as of March 10, 2026.
 
 ### Test code bases
 
 All of the following tests were done using hyperfine with 100 runs.
 
-- This Codebase - As is tradition for many analysis programs it is fitting that this program is used to analyze itself. Tests done on version 0.4.1
+- This Codebase - As is tradition for many analysis programs it is fitting that this program is used to analyze itself.
 
 - [CoreUtils](https://github.com/uutils/coreutils.git) - A rust rewrite of the GNU core utils. As a result it is a rather large code base made up of 1280 files, 610 being rust with 233,223 lines of code total.
 
 - [Chart.js](https://github.com/chartjs/Chart.js) - A popular JavaScript charting library. Contains approximately 200 JavaScript files totaling around 30,000 lines of code. Tests done using the JavaScript parser.
 
+- [BuildCLI](https://github.com/BuildCLI/BuildCLI) - A Java CLI framework. Contains approximately 150 Java files.
+
+- [faker-cxx](https://github.com/cieslarmichal/faker-cxx) - A C++ fake data generator library. Contains approximately 400 C++ files.
+
+- [authpass](https://github.com/authpass/authpass.git) - A Flutter/Dart password manager. Contains approximately 500 Dart files.
+
+- [jupyterlab](https://github.com/jupyterlab/jupyterlab) - A large TypeScript project. Contains approximately 1,000 TypeScript files.
+
+- [bitwarden-server](https://github.com/bitwarden/server) - A large C# project. Contains approximately 1,500 C# files.
+
+- [Platypus](https://github.com/sveinbjornt/Platypus) - An Objective-C macOS application. Contains approximately 30 Objective-C files.
+
 ### Results
 
-| Codebase                                                     | Commit                                                                                          | Mean runtime | Standard Deviation | Min      | Max      |
-| ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------- | ------------ | ------------------ | -------- | -------- |
-| This Codebase (src/)                                         | [b3d5d7](https://github.com/anomalyco/auto-UML/commit/b2d5d7e9e560fa1c5fe4dcf2436a36357c0c548c) | 28.9 ms      | 4.4 ms             | 17.3 ms  | 38.1 ms  |
-| [CoreUtils](https://github.com/uutils/coreutils.git)         | [f336d](https://github.com/uutils/coreutils/commit/f335d14a8368aac01fb27518c29732f0bb8292fe)    | 2.815 s      | 0.272 s            | 1.980 s  | 3.578 s  |
-| [Chart.js](https://github.com/chartjs/Chart.js) (JavaScript) | [a15356](https://github.com/chartjs/Chart.js/commit/a153556861074e827358446ec937555ac58c3d11)   | 682.2 ms     | 87.9 ms            | 467.2 ms | 872.7 ms |
+| Codebase                                                      | Language      | Mean runtime | Standard Deviation | Min       | Max       |
+| ------------------------------------------------------------ | ------------- | ------------ | ------------------ | --------- | --------- |
+| [This Codebase](https://github.com/anomalyco/auto-UML)      | Rust          | 36.3 ms      | 7.0 ms             | 23.8 ms   | 43.3 ms   |
+| [Chart.js](https://github.com/chartjs/Chart.js)             | JavaScript    | 520.8 ms     | 36.2 ms            | 480.8 ms  | 593.0 ms  |
+| [CoreUtils](https://github.com/uutils/coreutils.git)         | Rust          | 2.118 s      | 0.090 s            | 2.008 s   | 2.255 s   |
+| [BuildCLI](https://github.com/BuildCLI/BuildCLI)            | Java          | 157.3 ms     | 10.5 ms            | 139.8 ms  | 172.9 ms  |
+| [faker-cxx](https://github.com/cieslarmichal/faker-cxx)     | C++           | 1.187 s      | 0.094 s            | 1.105 s   | 1.368 s   |
+| [authpass](https://github.com/authpass/authpass.git)         | Dart          | 609.4 ms     | 51.0 ms            | 565.3 ms  | 691.2 ms  |
+| [jupyterlab](https://github.com/jupyterlab/jupyterlab)       | TypeScript    | 2.492 s      | 0.093 s            | 2.398 s   | 2.659 s   |
+| [bitwarden-server](https://github.com/bitwarden/server)     | C#            | 20.583 s     | 0.293 s            | 20.233 s  | 21.134 s  |
+| [Platypus](https://github.com/sveinbjornt/Platypus)         | Objective-C   | 231.6 ms     | 10.1 ms            | 217.7 ms  | 252.3 ms  |
