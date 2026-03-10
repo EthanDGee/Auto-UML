@@ -100,6 +100,14 @@ fn get_file_for_category(config: &LangTestConfig, category: &str) -> String {
     format!("{}/{}", config.path_prefix, file)
 }
 
+fn get_uml_for_category(config: &LangTestConfig, category: &str) -> String {
+    let source_path = get_file_for_category(config, category);
+    source_path
+        .rsplit_once('.')
+        .map(|(base, _)| format!("{}.uml", base))
+        .expect(&format!("Source file has no extension: {}", source_path))
+}
+
 fn run_test(
     config: &LangTestConfig,
     category: &str,
@@ -111,6 +119,20 @@ fn run_test(
     let lang_config = LangConfig::load(&config.name);
     let mut diagram = Diagram::new(&lang_config);
     diagram.build(&source, &mut parser);
+
+    let uml_path = get_uml_for_category(config, category);
+    let expected_uml = std::fs::read_to_string(&uml_path)
+        .expect(&format!("failed to read uml file: {}", uml_path));
+
+    let generated_uml = generate(&diagram);
+
+    assert_eq!(
+        generated_uml.trim(),
+        expected_uml.trim(),
+        "Mermaid output mismatch for {} - {}",
+        config.name,
+        category
+    );
 
     validator(&diagram, config);
 }
