@@ -1,0 +1,15 @@
+classDiagram
+    class ComplexData {
+        +raw_bytes: List~int~
+        +items: List~String~
+        +config: Map~String, int~
+        +owner: User
+        +process(mode: String) void
+        +create() ComplexData
+    }
+    class Metadata {
+        +key: String
+        +value: String
+        +log() void
+    }
+    ComplexData --> User

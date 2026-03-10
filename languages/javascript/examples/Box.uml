@@ -1,0 +1,5 @@
+classDiagram
+    class Box {
+        +inner
+        +get()
+    }

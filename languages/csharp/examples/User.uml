@@ -1,0 +1,6 @@
+classDiagram
+    class User {
+        -id: long
+        -username: string
+        -email: string
+    }

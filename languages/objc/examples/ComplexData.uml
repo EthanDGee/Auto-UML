@@ -1,0 +1,16 @@
+classDiagram
+    class Metadata {
+        +key: String
+        +value: String
+        +log() void
+    }
+    class ComplexData {
+        +raw_bytes: NSData
+        +items: NSArray~String~
+        +config: NSDictionary~String, NSNumber~
+        +owner: User
+        +process(mode: String) void
+        +create() ComplexData
+    }
+    ComplexData --> Metadata
+    ComplexData --> User

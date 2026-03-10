@@ -1,0 +1,6 @@
+classDiagram
+    class User {
+        +id: int
+        +username: String
+        +email: String
+    }
