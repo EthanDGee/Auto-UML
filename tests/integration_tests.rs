@@ -125,10 +125,19 @@ fn run_test(
         .expect(&format!("failed to read uml file: {}", uml_path));
 
     let generated_uml = generate(&diagram);
+    let generated_uml = generated_uml.trim();
+    let expected_uml = expected_uml.trim();
 
-    assert_eq!(
-        generated_uml.trim(),
-        expected_uml.trim(),
+    if generated_uml != expected_uml {
+        eprintln!("\n\x1b[1;31m--- Mermaid Mismatch for {} - {} ---\x1b[0m", config.name, category);
+        eprintln!("\x1b[1;32m+++ Expected:\x1b[0m\n{}", expected_uml);
+        eprintln!("\x1b[1;31m--- Generated:\x1b[0m\n{}", generated_uml);
+        eprintln!("\x1b[1;34m-------------------------------------------\x1b[0m\n");
+    }
+
+    pretty_assertions::assert_eq!(
+        generated_uml,
+        expected_uml,
         "Mermaid output mismatch for {} - {}",
         config.name,
         category
