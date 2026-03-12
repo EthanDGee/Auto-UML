@@ -27,6 +27,22 @@ impl Variable {
             inner_types,
         }
     }
+
+    pub fn display_type(&self) -> String {
+        match &self.inner_types {
+            Some(inner) if !inner.is_empty() => {
+                format!("{}~{}~", self.var_type, inner.join(", "))
+            }
+            _ => self.var_type.clone(),
+        }
+    }
+
+    pub fn to_string(&self) -> String {
+        match &self.name {
+            Some(name) => format!("{}: {}", name, self.display_type()),
+            None => self.display_type(),
+        }
+    }
 }
 
 pub struct Function {

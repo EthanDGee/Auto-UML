@@ -42,12 +42,14 @@ pub fn generate(uml_diagram: &diagram::Diagram) -> String {
 
             // Add variables
             for var in &class.variables {
-                let display_type = if var.inner_types.is_empty() {
-                    var.var_type.clone()
-                } else {
-                    format!("{}~{}~", var.var_type, var.inner_types.join(", "))
+                let display_type = match &var.inner_types {
+                    Some(inner) if !inner.is_empty() => {
+                        format!("{}~{}~", var.var_type, inner.join(", "))
+                    }
+                    _ => var.var_type.clone(),
                 };
-                output.push_str(&format!("        +{}: {}\n", var.name, display_type));
+
+                output.push_str(&format!("\t\t+{}\n", var.to_string()));
 
                 // add edge if main type matches a qualified class name
                 if let Some(destination) =
@@ -62,7 +64,10 @@ pub fn generate(uml_diagram: &diagram::Diagram) -> String {
                 }
                 // add edges for inner types
                 for inner in &var.inner_types {
-                    if let Some(destination) = uml_diagram.classes.iter().find(|c| c.name == *inner)
+                    if let Some(destination) = uml_diagram
+                        .classes
+                        .iter()
+                        .find(|c| c.name.as_ref().map(|n| n == inner).unwrap_or(false))
                     {
                         let new_edge = Edge {
                             source: class.name.clone(),
@@ -76,18 +81,7 @@ pub fn generate(uml_diagram: &diagram::Diagram) -> String {
 
             // Add functions
             for func in &class.functions {
-                let args: Vec<String> = func
-                    .arguments
-                    .iter()
-                    .map(|arg| {
-                        let display_type = if arg.inner_types.is_empty() {
-                            arg.var_type.clone()
-                        } else {
-                            format!("{}~{}~", arg.var_type, arg.inner_types.join(", "))
-                        };
-                        format!("{}: {}", arg.name, display_type)
-                    })
-                    .collect();
+                let args: Vec<String> = func.arguments.iter().map(|arg| arg.to_string()).collect();
 
                 let display_return = if func.return_inner_types.is_empty() {
                     func.return_type.clone()
@@ -179,17 +173,17 @@ mod tests {
         let mut diagram = Diagram::new(&rust_config);
         let mut class = Class::new("User".to_string());
 
-        class.add_variable(Variable::new(
+        class.add_variable(Variable::named_variable(
             "id".to_string(),
             "u64".to_string(),
-            Vec::new(),
+            None,
         ));
 
         let mut func = Function::new("login".to_string(), "bool".to_string(), Vec::new());
-        func.add_argument(Variable::new(
+        func.add_argument(Variable::named_variable(
             "token".to_string(),
             "String".to_string(),
-            Vec::new(),
+            None,
         ));
         class.add_function(func);
 
@@ -210,10 +204,10 @@ mod tests {
         let session_class = Class::new("Session".to_string());
         let profile_class = Class::new("Profile".to_string());
 
-        user_class.add_variable(Variable::new(
+        user_class.add_variable(Variable::named_variable(
             "current_session".to_string(),
             "Session".to_string(),
-            Vec::new(),
+            None,
         ));
         user_class.add_function(Function::new(
             "get_profile".to_string(),
