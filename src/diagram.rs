@@ -16,6 +16,10 @@ impl Variable {
         }
     }
 
+    pub fn void() -> Self {
+        Variable::new("void".to_string())
+    }
+
     pub fn named_variable(
         name: String,
         var_type: String,
@@ -48,17 +52,15 @@ impl Variable {
 pub struct Function {
     pub name: String,
     pub arguments: Vec<Variable>,
-    pub return_type: String,
-    pub return_inner_types: Vec<String>,
+    pub return_type: Variable,
 }
 
 impl Function {
-    pub fn new(name: String, return_type: String, return_inner_types: Vec<String>) -> Self {
+    pub fn new(name: String, return_type: Variable) -> Self {
         Function {
             name,
             arguments: Vec::new(),
             return_type,
-            return_inner_types,
         }
     }
 
@@ -170,13 +172,22 @@ impl<'a> Diagram<'a> {
             let name = self.extract_identifier(node, source);
             if !name.is_empty() {
                 let types = self.extract_type(node, source);
-                let main_type = types.first().cloned().unwrap_or_else(|| "void".to_string());
-                let inners = if types.len() > 1 {
-                    types[1..].to_vec()
+                let return_type = if types.is_empty() || types[0] == "void" {
+                    Variable::void()
                 } else {
-                    Vec::new()
+                    let main_type = types[0].clone();
+                    let inners = if types.len() > 1 {
+                        Some(types[1..].to_vec())
+                    } else {
+                        None
+                    };
+                    Variable {
+                        var_type: main_type,
+                        inner_types: inners,
+                        name: None,
+                    }
                 };
-                let mut func = Function::new(name, main_type, inners);
+                let mut func = Function::new(name, return_type);
                 self.extract_parameters(node, source, &mut func);
 
                 if let Some(idx) = next_class_index {
@@ -357,15 +368,15 @@ mod tests {
 
     #[test]
     fn test_function_new() {
-        let func = Function::new("test_func".to_string(), "void".to_string(), Vec::new());
+        let func = Function::new("test_func".to_string(), Variable::void());
         assert_eq!(func.name, "test_func");
-        assert_eq!(func.return_type, "void");
+        assert_eq!(func.return_type.var_type, "void");
         assert!(func.arguments.is_empty());
     }
 
     #[test]
     fn test_function_add_argument() {
-        let mut func = Function::new("test_func".to_string(), "void".to_string(), Vec::new());
+        let mut func = Function::new("test_func".to_string(), Variable::void());
         let var = Variable::named_variable("arg1".to_string(), "String".to_string(), None);
         func.add_argument(var);
         assert_eq!(func.arguments.len(), 1);
@@ -393,7 +404,7 @@ mod tests {
     fn test_class_add_items() {
         let mut class = Class::new("MyClass".to_string());
         let var = Variable::named_variable("field1".to_string(), "u32".to_string(), None);
-        let func = Function::new("method1".to_string(), "bool".to_string(), Vec::new());
+        let func = Function::new("method1".to_string(), Variable::void());
         class.add_variable(var);
         class.add_function(func);
         assert_eq!(class.variables.len(), 1);
