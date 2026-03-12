@@ -176,14 +176,14 @@ fn test_stitcher_integration() {
     let latest_post_var = app_class
         .variables
         .iter()
-        .find(|v| v.name == "latest_post")
+        .find(|v| v.name.as_deref() == Some("latest_post"))
         .unwrap();
     assert_eq!(latest_post_var.var_type, "models_Post");
 
     let current_user_var = app_class
         .variables
         .iter()
-        .find(|v| v.name == "current_user")
+        .find(|v| v.name.as_deref() == Some("current_user"))
         .unwrap();
     assert!(current_user_var.var_type == "models_User" || current_user_var.var_type == "auth_User");
 
@@ -242,7 +242,7 @@ fn test_all_complex_types() {
                 .iter()
                 .find(|c| c.name == "ComplexData")
                 .expect(&format!("Class 'ComplexData' not found for {}", cfg.name));
-            assert!(class.variables.iter().any(|v| v.name == "raw_bytes"));
+            assert!(class.variables.iter().any(|v| v.name.as_deref() == Some("raw_bytes")));
             assert!(class.functions.iter().any(|f| f.name == "process"));
         });
     }
@@ -258,7 +258,7 @@ fn test_all_generics() {
                 .iter()
                 .find(|c| c.name.contains("Box"))
                 .expect(&format!("Generic class 'Box' not found for {}", cfg.name));
-            assert!(class.variables.iter().any(|v| v.name == "inner"));
+            assert!(class.variables.iter().any(|v| v.name.as_deref() == Some("inner")));
         });
     }
 }

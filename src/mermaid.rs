@@ -34,7 +34,7 @@ pub fn generate(uml_diagram: &diagram::Diagram) -> String {
     for (namespace, classes) in namespace_map {
         let has_namespace = !namespace.is_empty();
         if has_namespace {
-            output.push_str(&format!("\tsubgraph {}\n", namespace));
+            output.push_str(&format!("namespace {} {{\n", namespace));
         }
 
         for class in classes {
@@ -110,7 +110,7 @@ pub fn generate(uml_diagram: &diagram::Diagram) -> String {
         }
 
         if has_namespace {
-            output.push_str("\tend\n");
+            output.push_str("}\n");
         }
     }
 
@@ -126,7 +126,7 @@ pub fn generate(uml_diagram: &diagram::Diagram) -> String {
             Relation::Realization => "<|..",
         };
         output.push_str(&format!(
-            "    {} {} {}\n",
+            "\t{} {} {}\n",
             edge.source, arrow, edge.destination
         ));
     }

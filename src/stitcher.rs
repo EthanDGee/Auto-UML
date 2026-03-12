@@ -54,39 +54,50 @@ impl<'a> Directory<'a> {
                 {
                     var.var_type = qualified;
                 }
-                for inner in &mut var.inner_types {
-                    if let Some(qualified) =
-                        type_map.resolve(inner, &class.name, &self.merged_diagram.imports)
-                    {
-                        *inner = qualified;
+                if let Some(inners) = &mut var.inner_types {
+                    for inner in inners {
+                        if let Some(qualified) =
+                            type_map.resolve(inner, &class.name, &self.merged_diagram.imports)
+                        {
+                            *inner = qualified;
+                        }
                     }
                 }
             }
             // Resolve function return and argument types
             for func in &mut class.functions {
-                if let Some(qualified) =
-                    type_map.resolve(&func.return_type, &class.name, &self.merged_diagram.imports)
-                {
-                    func.return_type = qualified;
+                // Resolve return type
+                if let Some(qualified) = type_map.resolve(
+                    &func.return_type.var_type,
+                    &class.name,
+                    &self.merged_diagram.imports,
+                ) {
+                    func.return_type.var_type = qualified;
                 }
-                for inner in &mut func.return_inner_types {
-                    if let Some(qualified) =
-                        type_map.resolve(inner, &class.name, &self.merged_diagram.imports)
-                    {
-                        *inner = qualified;
+                if let Some(inners) = &mut func.return_type.inner_types {
+                    for inner in inners {
+                        if let Some(qualified) =
+                            type_map.resolve(inner, &class.name, &self.merged_diagram.imports)
+                        {
+                            *inner = qualified;
+                        }
                     }
                 }
+
+                // Resolve argument types
                 for arg in &mut func.arguments {
                     if let Some(qualified) =
                         type_map.resolve(&arg.var_type, &class.name, &self.merged_diagram.imports)
                     {
                         arg.var_type = qualified;
                     }
-                    for inner in &mut arg.inner_types {
-                        if let Some(qualified) =
-                            type_map.resolve(inner, &class.name, &self.merged_diagram.imports)
-                        {
-                            *inner = qualified;
+                    if let Some(inners) = &mut arg.inner_types {
+                        for inner in inners {
+                            if let Some(qualified) =
+                                type_map.resolve(inner, &class.name, &self.merged_diagram.imports)
+                            {
+                                *inner = qualified;
+                            }
                         }
                     }
                 }
