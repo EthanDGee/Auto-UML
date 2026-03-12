@@ -5,89 +5,104 @@ set -e
 RUNS=100
 WARMUP=3
 
-echo "=== Building Latest Release ==="
-cargo build --release
-
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BENCHMARK_DIR="$SCRIPT_DIR/benchmarks"
 TOOL_PATH="target/release/auto-uml"
 
-mkdir -p "$BENCHMARK_DIR"
-cd "$BENCHMARK_DIR"
+header() {
+  echo ""
+  echo "========================================"
+  echo "$1"
+  echo "========================================"
+}
 
-echo "=== Cloning codebases ==="
+info() {
+  echo ">>> $1"
+}
 
-if [ ! -d "coreutils" ]; then
-  git clone --depth 1 https://github.com/uutils/coreutils.git
-fi
+build_latest() {
+  header "Building Latest Release"
+  cargo build --release
+}
 
-if [ ! -d "Chart.js" ]; then
-  git clone --depth 1 https://github.com/chartjs/Chart.js
-fi
+spinner_pid=0
 
-if [ ! -d "BuildCLI" ]; then
-  git clone --depth 1 https://github.com/BuildCLI/BuildCLI
-fi
+spinner_start() {
+  printf "%s " "$1"
+  local spin='|/-\'
+  local i=0
+  while kill -0 "$spinner_pid" 2>/dev/null; do
+    printf "\b%s" "${spin:i++%${#spin}:1}"
+    sleep 0.1
+  done
+  printf "\bDone\n"
+}
 
-if [ ! -d "faker-cxx" ]; then
-  git clone --depth 1 https://github.com/cieslarmichal/faker-cxx
-fi
+clone_repo() {
+  local dir="$1"
+  local url="$2"
+  if [ ! -d "$dir" ]; then
+    printf ">>> Cloning %s... " "$dir"
+    git clone --depth 1 "$url" "$dir" &>/dev/null &
+    spinner_pid=$!
+    spinner_start
+  else
+    info "Skipping $dir (already exists)"
+  fi
+}
 
-if [ ! -d "ReactiveUI" ]; then
-  git clone --depth 1 https://github.com/reactiveui/ReactiveUI
-fi
+pull_codebases() {
+  mkdir -p "$BENCHMARK_DIR"
+  cd "$BENCHMARK_DIR"
 
-if [ ! -d "authpass" ]; then
-  git clone --depth 1 https://github.com/authpass/authpass.git
-fi
+  header "Pulling Codebases"
 
-if [ ! -d "jupyterlab" ]; then
-  git clone --depth 1 https://github.com/jupyterlab/jupyterlab
-fi
+  clone_repo "coreutils" "https://github.com/uutils/coreutils.git"
+  clone_repo "Chart.js" "https://github.com/chartjs/Chart.js"
+  clone_repo "BuildCLI" "https://github.com/BuildCLI/BuildCLI"
+  clone_repo "faker-cxx" "https://github.com/cieslarmichal/faker-cxx"
+  clone_repo "ReactiveUI" "https://github.com/reactiveui/ReactiveUI"
+  clone_repo "authpass" "https://github.com/authpass/authpass.git"
+  clone_repo "jupyterlab" "https://github.com/jupyterlab/jupyterlab"
+  clone_repo "bitwarden-server" "https://github.com/bitwarden/server"
+  clone_repo "Platypus" "https://github.com/sveinbjornt/Platypus"
 
-if [ ! -d "bitwarden-server" ]; then
-  git clone --depth 1 https://github.com/bitwarden/server bitwarden-server
-fi
+  cd "$SCRIPT_DIR"
+}
 
-if [ ! -d "Platypus" ]; then
-  git clone --depth 1 https://github.com/sveinbjornt/Platypus
-fi
+run_benchmark() {
+  local name="$1"
+  local source_code="$2"
+  local lang="$3"
+  header "Benchmark: $name ($lang)"
+  hyperfine --runs $RUNS --warmup $WARMUP "$TOOL_PATH --source-code $source_code --lang $lang --destination uml.md"
+}
 
-cd "$SCRIPT_DIR"
+run_benchmarks() {
+  header "Running Benchmarks"
 
-echo "Running benchmarks..."
+  run_benchmark "This Codebase" "src/" "rust"
+  run_benchmark "Chart.js" "$BENCHMARK_DIR/Chart.js" "javascript"
+  run_benchmark "CoreUtils" "$BENCHMARK_DIR/coreutils" "rust"
+  run_benchmark "BuildCLI" "$BENCHMARK_DIR/BuildCLI" "java"
+  run_benchmark "faker-cxx" "$BENCHMARK_DIR/faker-cxx" "cpp"
+  run_benchmark "AuthPass" "$BENCHMARK_DIR/authpass" "dart"
+  run_benchmark "JupyterLab" "$BENCHMARK_DIR/jupyterlab" "typescript"
+  run_benchmark "bitwarden-server" "$BENCHMARK_DIR/bitwarden-server" "csharp"
+  run_benchmark "Platypus" "$BENCHMARK_DIR/Platypus" "objective-c"
+}
 
-echo "=== Benchmark: This Codebase ==="
-hyperfine --runs $RUNS --warmup $WARMUP "$TOOL_PATH --source-code src/ --lang rust --destination uml.md"
+cleanup() {
+  header "Cleaning Up"
+  info "Removing benchmark directory..."
+  rm -rf "$BENCHMARK_DIR"
+  info "Removing output file..."
+  rm -f uml.md
+}
 
-echo "=== Benchmark: Chart.js ==="
-hyperfine --runs $RUNS --warmup $WARMUP "$TOOL_PATH --source-code $BENCHMARK_DIR/Chart.js --lang javascript --destination uml.md"
+build_latest
+pull_codebases
+run_benchmarks
+cleanup
 
-echo "=== Benchmark: CoreUtils ==="
-hyperfine --runs $RUNS --warmup $WARMUP "$TOOL_PATH --source-code $BENCHMARK_DIR/coreutils --lang rust --destination uml.md"
-
-echo "=== Benchmark: BuildCLI ==="
-hyperfine --runs $RUNS --warmup $WARMUP "$TOOL_PATH --source-code $BENCHMARK_DIR/BuildCLI --lang java --destination uml.md"
-
-echo "=== Benchmark: faker-cxx ==="
-hyperfine --runs $RUNS --warmup $WARMUP "$TOOL_PATH --source-code $BENCHMARK_DIR/faker-cxx --lang cpp --destination uml.md"
-
-echo "=== Benchmark: AuthPass ==="
-hyperfine --runs $RUNS --warmup $WARMUP "$TOOL_PATH --source-code $BENCHMARK_DIR/authpass --lang dart --destination uml.md"
-
-echo "=== Benchmark: JupyterLab ==="
-hyperfine --runs $RUNS --warmup $WARMUP "$TOOL_PATH --source-code $BENCHMARK_DIR/jupyterlab --lang typescript --destination uml.md"
-
-echo "=== Benchmark: bitwarden-server ==="
-hyperfine --runs $RUNS --warmup $WARMUP "$TOOL_PATH --source-code $BENCHMARK_DIR/bitwarden-server --lang csharp --destination uml.md"
-
-echo "=== Benchmark: Platypus ==="
-hyperfine --runs $RUNS --warmup $WARMUP "$TOOL_PATH --source-code $BENCHMARK_DIR/Platypus --lang objective-c --destination uml.md"
-
-echo ""
-
-echo "Cleaning up benchmarks..."
-rm -rf "$BENCHMARK_DIR"
-rm uml.md
-
-echo "Done!"
+header "All Done!"
