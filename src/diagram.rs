@@ -67,6 +67,16 @@ impl Function {
     pub fn add_argument(&mut self, arg: Variable) {
         self.arguments.push(arg);
     }
+
+    pub fn to_string(&self) -> String {
+        let args: Vec<String> = self.arguments.iter().map(|arg| arg.to_string()).collect();
+        format!(
+            "{}({}) {}",
+            self.name,
+            args.join(", "),
+            self.return_type.display_type()
+        )
+    }
 }
 
 pub struct Class {
