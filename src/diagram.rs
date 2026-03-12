@@ -2,16 +2,28 @@ use crate::lang_config::LangConfig;
 use tree_sitter::Node;
 
 pub struct Variable {
-    pub name: String,
     pub var_type: String,
-    pub inner_types: Vec<String>,
+    pub inner_types: Option<Vec<String>>,
+    pub name: Option<String>,
 }
 
 impl Variable {
-    pub fn new(name: String, var_type: String, inner_types: Vec<String>) -> Self {
+    pub fn new(var_type: String) -> Self {
         Variable {
-            name,
             var_type,
+            inner_types: None,
+            name: None,
+        }
+    }
+
+    pub fn named_variable(
+        name: String,
+        var_type: String,
+        inner_types: Option<Vec<String>>,
+    ) -> Self {
+        Variable {
+            var_type,
+            name: Some(name),
             inner_types,
         }
     }
@@ -166,7 +178,7 @@ impl<'a> Diagram<'a> {
                 } else {
                     Vec::new()
                 };
-                let var = Variable::new(name, main_type, inners);
+                let var = Variable::named_variable(name, main_type, Some(inners));
                 if let Some(idx) = next_class_index {
                     self.classes[idx].add_variable(var);
                 }
@@ -284,7 +296,11 @@ impl<'a> Diagram<'a> {
                         };
 
                         if !p_name.is_empty() {
-                            func.add_argument(Variable::new(p_name, main_type, inners));
+                            func.add_argument(Variable::named_variable(
+                                p_name,
+                                main_type,
+                                Some(inners),
+                            ));
                         }
                     }
                 }
@@ -309,9 +325,18 @@ mod tests {
 
     #[test]
     fn test_variable_new() {
-        let var = Variable::new("x".to_string(), "i32".to_string(), Vec::new());
-        assert_eq!(var.name, "x");
+        let var = Variable::new("i32".to_string());
         assert_eq!(var.var_type, "i32");
+        assert_eq!(var.inner_types, None);
+        assert_eq!(var.name, None);
+    }
+
+    #[test]
+    fn test_variable_new_named() {
+        let var = Variable::named_variable("x".to_string(), "i32".to_string(), None);
+        assert_eq!(var.var_type, "i32");
+        assert_eq!(var.inner_types, None);
+        assert_eq!(var.name, Some("x".to_string()));
     }
 
     #[test]
@@ -325,11 +350,11 @@ mod tests {
     #[test]
     fn test_function_add_argument() {
         let mut func = Function::new("test_func".to_string(), "void".to_string(), Vec::new());
-        let var = Variable::new("arg1".to_string(), "String".to_string(), Vec::new());
+        let var = Variable::named_variable("arg1".to_string(), "String".to_string(), None);
         func.add_argument(var);
         assert_eq!(func.arguments.len(), 1);
-        assert_eq!(func.arguments[0].name, "arg1");
         assert_eq!(func.arguments[0].var_type, "String");
+        assert_eq!(func.arguments[0].name, Some("arg1".to_string()));
     }
 
     #[test]
@@ -351,14 +376,14 @@ mod tests {
     #[test]
     fn test_class_add_items() {
         let mut class = Class::new("MyClass".to_string());
-        let var = Variable::new("field1".to_string(), "u32".to_string(), Vec::new());
+        let var = Variable::named_variable("field1".to_string(), "u32".to_string(), None);
         let func = Function::new("method1".to_string(), "bool".to_string(), Vec::new());
         class.add_variable(var);
         class.add_function(func);
         assert_eq!(class.variables.len(), 1);
         assert_eq!(class.functions.len(), 1);
-        assert_eq!(class.variables[0].name, "field1");
         assert_eq!(class.functions[0].name, "method1");
+        assert_eq!(class.variables[0].name, Some("field1".to_string()));
     }
 
     #[test]
@@ -376,16 +401,16 @@ mod tests {
 
         let mut diagram = Diagram::new(&rust_config);
         diagram.build(source, &mut parser);
-        
+
         // Find the class or function we just built
         // In this case it's a top level function, so it might not be in a class
         // but navigate_node should have picked it up if function_patterns match.
         // Actually test_helpers_direct was testing extract_identifier directly.
-        
+
         let tree = parser.parse(source, None).unwrap();
         let root = tree.root_node();
         let func_node = root.child(0).unwrap();
-        
+
         let name = diagram.extract_identifier(func_node, source);
         assert_eq!(name, "test");
 

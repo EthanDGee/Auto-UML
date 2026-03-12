@@ -259,7 +259,9 @@ mod tests {
 
         let java_config = LangConfig::load("java");
         let mut java_parser = Parser::new();
-        java_parser.set_language(&tree_sitter_java::LANGUAGE.into()).unwrap();
+        java_parser
+            .set_language(&tree_sitter_java::LANGUAGE.into())
+            .unwrap();
         let stitcher_java = Stitcher::new(PathBuf::from("."), &java_config, java_parser);
         assert!(stitcher_java.is_source_file(Path::new("Test.java")));
     }
