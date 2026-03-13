@@ -30,7 +30,7 @@ classDiagram
 		+void() Self
 		+named_variable(name: String, var_type: String, inner_types: Option~Vec<String>~) Self
 		+display_type() String
-		+to_string() String
+		+fmt(f: &mut fmt::Formatter~'_~) fmt::Result
 	}
 	class Function {
 		+name: String
@@ -38,7 +38,7 @@ classDiagram
 		+return_type: Variable
 		+new(name: String, return_type: Variable) Self
 		+add_argument(arg: Variable) void
-		+to_string() String
+		+fmt(f: &mut fmt::Formatter~'_~) fmt::Result
 	}
 	class Class {
 		+name: String
@@ -65,7 +65,6 @@ classDiagram
 	}
 	class GlobalTypeMap {
 		+types: HashMap~String, Vec<String>~
-		+new() Self
 		+insert(short_name: String, qualified_name: String) void
 		+resolve(type_name: &str, current_class_qualified: &str, _imports: &[String]) Option~String~
 	}
