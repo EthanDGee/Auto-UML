@@ -106,22 +106,17 @@ impl<'a> Directory<'a> {
     }
 }
 
+#[derive(Default)]
 pub struct GlobalTypeMap {
     /// Maps short class name to a list of fully qualified names (namespaced)
     pub types: HashMap<String, Vec<String>>,
 }
 
 impl GlobalTypeMap {
-    pub fn new() -> Self {
-        GlobalTypeMap {
-            types: HashMap::new(),
-        }
-    }
-
     pub fn insert(&mut self, short_name: String, qualified_name: String) {
         self.types
             .entry(short_name)
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(qualified_name);
     }
 
@@ -172,7 +167,7 @@ impl<'a> Stitcher<'a> {
     pub fn new(root_path: PathBuf, config: &'a LangConfig, parser: TreeSitterParser) -> Self {
         Stitcher {
             root_path,
-            type_map: GlobalTypeMap::new(),
+            type_map: Default::default(),
             config,
             parser,
         }
@@ -188,14 +183,21 @@ impl<'a> Stitcher<'a> {
         if let Ok(entries) = fs::read_dir(current_path) {
             for entry in entries.flatten() {
                 let path = entry.path();
-                if path.is_dir() {
-                    let mut sub_dir = Directory::new(self.config);
-                    self.process_directory(&path, &mut sub_dir);
-                    current_dir.sub_directories.push(sub_dir);
-                } else if self.is_source_file(&path) {
-                    if let Some(file_node) = self.process_file(&path) {
-                        current_dir.files.push(file_node);
+
+                match path {
+                    p if p.is_dir() => {
+                        // process sub directory
+                        let mut sub_dir = Directory::new(self.config);
+                        self.process_directory(&p, &mut sub_dir);
+                        current_dir.sub_directories.push(sub_dir);
                     }
+                    p if self.is_source_file(&p) => {
+                        // process and add to files.
+                        if let Some(file_node) = self.process_file(&p) {
+                            current_dir.files.push(file_node);
+                        }
+                    }
+                    _ => {}
                 }
             }
         }
@@ -279,7 +281,7 @@ mod tests {
 
     #[test]
     fn test_type_resolution_heuristic() {
-        let mut map = GlobalTypeMap::new();
+        let mut map: GlobalTypeMap = Default::default();
         map.insert("User".to_string(), "models_User".to_string());
         map.insert("User".to_string(), "auth_User".to_string());
 
