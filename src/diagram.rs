@@ -1,6 +1,8 @@
 use crate::lang_config::LangConfig;
 use tree_sitter::Node;
 
+const EMPTY_RETURN_TYPE: &str = "void";
+
 pub struct Variable {
     pub var_type: String,
     pub inner_types: Option<Vec<String>>,
@@ -17,7 +19,7 @@ impl Variable {
     }
 
     pub fn void() -> Self {
-        Variable::new("void".to_string())
+        Variable::new(EMPTY_RETURN_TYPE.to_string())
     }
 
     pub fn named_variable(
@@ -146,7 +148,6 @@ impl<'a> Diagram<'a> {
         let kind = node.kind();
         let mut next_class_index = class_index;
         let mut active_namespace = current_namespace.to_string();
-
         if self.lang.import_patterns.iter().any(|p| p == kind) {
             let import_text =
                 String::from_utf8_lossy(&source[node.start_byte()..node.end_byte()]).to_string();
@@ -182,7 +183,7 @@ impl<'a> Diagram<'a> {
             let name = self.extract_identifier(node, source);
             if !name.is_empty() {
                 let types = self.extract_type(node, source);
-                let return_type = if types.is_empty() || types[0] == "void" {
+                let return_type = if types.is_empty() || types[0] == EMPTY_RETURN_TYPE {
                     Variable::void()
                 } else {
                     let main_type = types[0].clone();
@@ -209,7 +210,10 @@ impl<'a> Diagram<'a> {
             let name = self.extract_identifier(node, source);
             if !name.is_empty() {
                 let types = self.extract_type(node, source);
-                let main_type = types.first().cloned().unwrap_or_else(|| "void".to_string());
+                let main_type = types
+                    .first()
+                    .cloned()
+                    .unwrap_or_else(|| EMPTY_RETURN_TYPE.to_string());
                 let inners = if types.len() > 1 {
                     types[1..].to_vec()
                 } else {
@@ -301,7 +305,7 @@ impl<'a> Diagram<'a> {
                 return vec![full_type];
             }
         }
-        vec!["void".to_string()]
+        vec![EMPTY_RETURN_TYPE.to_string()]
     }
 
     /// Helper to extract parameters and add them to a function.
@@ -324,8 +328,10 @@ impl<'a> Diagram<'a> {
                     {
                         let p_name = self.extract_identifier(param, source);
                         let types = self.extract_type(param, source);
-                        let main_type =
-                            types.first().cloned().unwrap_or_else(|| "void".to_string());
+                        let main_type = types
+                            .first()
+                            .cloned()
+                            .unwrap_or_else(|| EMPTY_RETURN_TYPE.to_string());
                         let inners = if types.len() > 1 {
                             types[1..].to_vec()
                         } else {
@@ -380,7 +386,7 @@ mod tests {
     fn test_function_new() {
         let func = Function::new("test_func".to_string(), Variable::void());
         assert_eq!(func.name, "test_func");
-        assert_eq!(func.return_type.var_type, "void");
+        assert_eq!(func.return_type.var_type, EMPTY_RETURN_TYPE);
         assert!(func.arguments.is_empty());
     }
 
