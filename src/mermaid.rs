@@ -27,7 +27,7 @@ pub fn generate(uml_diagram: &diagram::Diagram) -> String {
     for class in &uml_diagram.classes {
         namespace_map
             .entry(class.namespace.clone())
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(class);
     }
 
@@ -42,7 +42,7 @@ pub fn generate(uml_diagram: &diagram::Diagram) -> String {
 
             // Add variables
             for var in &class.variables {
-                output.push_str(&format!("\t\t+{}\n", var.to_string()));
+                output.push_str(&format!("\t\t+{}\n", var));
 
                 // add edge if main type matches a qualified class name
                 if let Some(destination) =
@@ -74,7 +74,7 @@ pub fn generate(uml_diagram: &diagram::Diagram) -> String {
 
             // Add functions
             for func in &class.functions {
-                output.push_str(&format!("\t\t+{}\n", func.to_string()));
+                output.push_str(&format!("\t\t+{}\n", func));
 
                 // add edge if main return type matches a qualified class name
                 if let Some(destination) = uml_diagram

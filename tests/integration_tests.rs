@@ -93,10 +93,10 @@ fn setup_parser(lang: &str) -> Parser {
 }
 
 fn get_file_for_category(config: &LangTestConfig, category: &str) -> String {
-    let file = config.files.get(category).expect(&format!(
-        "No file defined for category {} in {}",
-        category, config.name
-    ));
+    let file = config
+        .files
+        .get(category)
+        .expect("No file defined for category");
     format!("{}/{}", config.path_prefix, file)
 }
 
@@ -105,7 +105,7 @@ fn get_uml_for_category(config: &LangTestConfig, category: &str) -> String {
     source_path
         .rsplit_once('.')
         .map(|(base, _)| format!("{}.uml", base))
-        .expect(&format!("Source file has no extension: {}", source_path))
+        .expect("Source file has no extension")
 }
 
 fn run_test(
@@ -115,21 +115,23 @@ fn run_test(
 ) {
     let mut parser = setup_parser(&config.name);
     let path = get_file_for_category(config, category);
-    let source = std::fs::read(&path).expect(&format!("failed to read test file: {}", path));
+    let source = std::fs::read(&path).expect("failed to read test file");
     let lang_config = LangConfig::load(&config.name);
     let mut diagram = Diagram::new(&lang_config);
     diagram.build(&source, &mut parser);
 
     let uml_path = get_uml_for_category(config, category);
-    let expected_uml = std::fs::read_to_string(&uml_path)
-        .expect(&format!("failed to read uml file: {}", uml_path));
+    let expected_uml = std::fs::read_to_string(&uml_path).expect("failed to read uml file");
 
     let generated_uml = generate(&diagram);
     let generated_uml = generated_uml.trim();
     let expected_uml = expected_uml.trim();
 
     if generated_uml != expected_uml {
-        eprintln!("\n\x1b[1;31m--- Mermaid Mismatch for {} - {} ---\x1b[0m", config.name, category);
+        eprintln!(
+            "\n\x1b[1;31m--- Mermaid Mismatch for {} - {} ---\x1b[0m",
+            config.name, category
+        );
         eprintln!("\x1b[1;32m+++ Expected:\x1b[0m\n{}", expected_uml);
         eprintln!("\x1b[1;31m--- Generated:\x1b[0m\n{}", generated_uml);
         eprintln!("\x1b[1;34m-------------------------------------------\x1b[0m\n");
@@ -201,7 +203,7 @@ fn test_all_simple_structs() {
                 .classes
                 .iter()
                 .find(|c| c.name == "User")
-                .expect(&format!("Class 'User' not found for {}", cfg.name));
+                .expect("Class 'User' not found");
             assert_eq!(
                 class.variables.len(),
                 3,
@@ -221,7 +223,7 @@ fn test_all_impl_blocks() {
                 .classes
                 .iter()
                 .find(|c| c.name == "Calculator")
-                .expect(&format!("Class 'Calculator' not found for {}", cfg.name));
+                .expect("Class 'Calculator' not found");
             assert!(
                 class.functions.len() >= 2,
                 "Function count low for {}",
@@ -236,13 +238,18 @@ fn test_all_impl_blocks() {
 fn test_all_complex_types() {
     let configs = load_test_configs();
     for config in configs {
-        run_test(&config, "complex_types", |diagram, cfg| {
+        run_test(&config, "complex_types", |diagram, _cfg| {
             let class = diagram
                 .classes
                 .iter()
                 .find(|c| c.name == "ComplexData")
-                .expect(&format!("Class 'ComplexData' not found for {}", cfg.name));
-            assert!(class.variables.iter().any(|v| v.name.as_deref() == Some("raw_bytes")));
+                .expect("Class 'ComplexData' not found");
+            assert!(
+                class
+                    .variables
+                    .iter()
+                    .any(|v| v.name.as_deref() == Some("raw_bytes"))
+            );
             assert!(class.functions.iter().any(|f| f.name == "process"));
         });
     }
@@ -252,13 +259,18 @@ fn test_all_complex_types() {
 fn test_all_generics() {
     let configs = load_test_configs();
     for config in configs {
-        run_test(&config, "generics", |diagram, cfg| {
+        run_test(&config, "generics", |diagram, _cfg| {
             let class = diagram
                 .classes
                 .iter()
                 .find(|c| c.name.contains("Box"))
-                .expect(&format!("Generic class 'Box' not found for {}", cfg.name));
-            assert!(class.variables.iter().any(|v| v.name.as_deref() == Some("inner")));
+                .expect("Generic class 'Box' not found");
+            assert!(
+                class
+                    .variables
+                    .iter()
+                    .any(|v| v.name.as_deref() == Some("inner"))
+            );
         });
     }
 }

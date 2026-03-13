@@ -1,4 +1,5 @@
 use crate::lang_config::LangConfig;
+use std::fmt;
 use tree_sitter::Node;
 
 const EMPTY_RETURN_TYPE: &str = "void";
@@ -42,11 +43,13 @@ impl Variable {
             _ => self.var_type.clone(),
         }
     }
+}
 
-    pub fn to_string(&self) -> String {
+impl fmt::Display for Variable {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match &self.name {
-            Some(name) => format!("{}: {}", name, self.display_type()),
-            None => self.display_type(),
+            Some(name) => write!(f, "{}: {}", name, self.display_type()),
+            None => write!(f, "{}", self.display_type()),
         }
     }
 }
@@ -69,10 +72,13 @@ impl Function {
     pub fn add_argument(&mut self, arg: Variable) {
         self.arguments.push(arg);
     }
+}
 
-    pub fn to_string(&self) -> String {
+impl fmt::Display for Function {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let args: Vec<String> = self.arguments.iter().map(|arg| arg.to_string()).collect();
-        format!(
+        write!(
+            f,
             "{}({}) {}",
             self.name,
             args.join(", "),
@@ -80,7 +86,6 @@ impl Function {
         )
     }
 }
-
 pub struct Class {
     pub name: String,
     pub namespace: String,
@@ -316,7 +321,7 @@ impl<'a> Diagram<'a> {
                 .lang
                 .parameter_container_patterns
                 .iter()
-                .any(|p| p == &child.kind())
+                .any(|p| child.kind() == *p)
             {
                 let mut p_cursor = child.walk();
                 for param in child.children(&mut p_cursor) {
@@ -324,7 +329,7 @@ impl<'a> Diagram<'a> {
                         .lang
                         .parameter_patterns
                         .iter()
-                        .any(|p| p == &param.kind())
+                        .any(|p| param.kind() == *p)
                     {
                         let p_name = self.extract_identifier(param, source);
                         let types = self.extract_type(param, source);
