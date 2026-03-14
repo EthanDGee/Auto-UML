@@ -1,5 +1,7 @@
 use crate::diagram;
 
+const INDENT: &str = "    ";
+
 #[allow(dead_code)]
 enum Relation {
     Inheritance,
@@ -38,11 +40,11 @@ pub fn generate(uml_diagram: &diagram::Diagram) -> String {
         }
 
         for class in classes {
-            output.push_str(&format!("\tclass {} {{\n", class.name));
+            output.push_str(&format!("{}class {} {{\n", INDENT, class.name));
 
             // Add variables
             for var in &class.variables {
-                output.push_str(&format!("\t\t+{}\n", var));
+                output.push_str(&format!("{}{}+{}\n", INDENT, INDENT, var));
 
                 // add edge if main type matches a qualified class name
                 if let Some(destination) =
@@ -74,7 +76,7 @@ pub fn generate(uml_diagram: &diagram::Diagram) -> String {
 
             // Add functions
             for func in &class.functions {
-                output.push_str(&format!("\t\t+{}\n", func));
+                output.push_str(&format!("{}{}+{}\n", INDENT, INDENT, func));
 
                 // add edge if main return type matches a qualified class name
                 if let Some(destination) = uml_diagram
@@ -106,7 +108,7 @@ pub fn generate(uml_diagram: &diagram::Diagram) -> String {
                 }
             }
 
-            output.push_str("\t}\n");
+            output.push_str(&format!("{}}}\n", INDENT));
         }
 
         if has_namespace {
@@ -126,8 +128,8 @@ pub fn generate(uml_diagram: &diagram::Diagram) -> String {
             Relation::Realization => "<|..",
         };
         output.push_str(&format!(
-            "\t{} {} {}\n",
-            edge.source, arrow, edge.destination
+            "{}{} {} {}\n",
+            INDENT, edge.source, arrow, edge.destination
         ));
     }
 
