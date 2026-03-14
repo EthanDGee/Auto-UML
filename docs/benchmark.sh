@@ -7,7 +7,7 @@ WARMUP=3
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BENCHMARK_DIR="$SCRIPT_DIR/benchmarks"
-TOOL_PATH="target/release/auto-uml"
+TOOL_PATH="../target/release/auto-uml"
 
 header() {
   echo ""
@@ -81,7 +81,7 @@ run_benchmark() {
 run_benchmarks() {
   header "Running Benchmarks"
 
-  run_benchmark "This Codebase" "src/" "rust"
+  run_benchmark "This Codebase" "../src/" "rust"
   run_benchmark "Chart.js" "$BENCHMARK_DIR/Chart.js" "javascript"
   run_benchmark "CoreUtils" "$BENCHMARK_DIR/coreutils" "rust"
   run_benchmark "BuildCLI" "$BENCHMARK_DIR/BuildCLI" "java"
