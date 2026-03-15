@@ -51,3 +51,12 @@ import_patterns:
   - preproc_import
   - preproc_include
 namespace_patterns: []
+visibility_modifier_patterns:
+  - visibility_specifier
+private_by_default: false
+public_modifier_patterns: 
+  - public
+  - "@public"
+private_modifier_patterns:
+  - private
+  - "@private"

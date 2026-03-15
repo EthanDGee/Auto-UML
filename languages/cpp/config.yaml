@@ -35,3 +35,10 @@ import_patterns:
   - preproc_include
 namespace_patterns:
   - namespace_definition
+visibility_modifier_patterns:
+  - access_specifier
+private_by_default: true
+public_modifier_patterns: 
+  - public
+private_modifier_patterns:
+  - private
