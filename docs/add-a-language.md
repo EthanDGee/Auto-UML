@@ -111,12 +111,12 @@ The following is the Rust config. Each of these labels is the node names for tha
 ```yaml
 file_extensions:
   - rs
-class_patterns: 
+class_patterns:
   - struct_item
   - impl_item
   - class_declaration
   - class_specifier
-function_patterns: 
+function_patterns:
   - function_item
   - method_declaration
   - function_definition
@@ -145,7 +145,6 @@ wrapper_patterns:
   - struct_item
 skip_patterns: # some nodes do not need to be handled and can be skipped
   - modifiers
-  - visibility_modifier
   - storage_class
   - attribute_item
   - type_parameters
@@ -153,9 +152,15 @@ import_patterns:
   - use_declaration
 namespace_patterns:
   - mod_item
+visibility_modifier_patterns:
+  - visibility_modifier
+private_by_default: true
+public_modifier_patterns: 
+  - pub
+private_modifier_patterns: []
 ```
 
-> Not every language needs all of these items and so their fields can be left blank. The field is still a required part of the YAML
+> Not every language needs all of these items and so their fields can be left blank. The field is still a required part of the YAML as can be seen with private_modifier_patterns in the rust config.
 
 ## Add the language to the CLI and selector
 

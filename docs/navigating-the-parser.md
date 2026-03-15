@@ -43,6 +43,10 @@ For every function node, the parser:
 
 Variable nodes are processed for their name and type. If the parser is currently within a class context, these are added as member variables (fields) to the UML class.
 
+### Visibility Modifiers
+
+Visibility is determined from YAML config options and rendered in Mermaid notation (`+` for public, `-` for private).
+
 ## Extraction Helpers
 
 * **`extract_identifier`**: A specialized helper that searches a node's children for names. It is designed to "look through" wrapper nodes (like declarators) that some languages use to nest the actual identifier.
