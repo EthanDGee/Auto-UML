@@ -44,7 +44,7 @@ pub fn generate(uml_diagram: &diagram::Diagram) -> String {
 
             // Add variables
             for var in &class.variables {
-                output.push_str(&format!("{}{}+{}\n", INDENT, INDENT, var));
+                output.push_str(&format!("{}{}{}\n", INDENT, INDENT, var));
 
                 // add edge if main type matches a qualified class name
                 if let Some(destination) =
@@ -154,27 +154,30 @@ mod tests {
         let mut diagram = Diagram::new(&rust_config);
         let mut class = Class::new("User".to_string());
 
-        class.add_variable(Variable::named_variable(
-            "id".to_string(),
-            "u64".to_string(),
-            None,
-        ));
+        class.add_variable(Variable {
+            name: Some("id".to_string()),
+            var_type: "u64".to_string(),
+            inner_types: None,
+            private: false,
+        });
 
         let mut func = Function::new("login".to_string(), Variable::new("bool".to_string()));
-        func.add_argument(Variable::named_variable(
-            "token".to_string(),
-            "String".to_string(),
-            None,
-        ));
+        func.add_argument(Variable {
+            name: Some("token".to_string()),
+            var_type: "String".to_string(),
+            inner_types: None,
+            private: false,
+        });
         class.add_function(func);
 
         diagram.classes.push(class);
 
         let output = generate(&diagram);
+        println!("Generated output:\n{}", output);
         assert!(output.contains("classDiagram"));
         assert!(output.contains("class User {"));
         assert!(output.contains("+id: u64"));
-        assert!(output.contains("+login(token: String) bool"));
+        assert!(output.contains("+login(token:String) bool"));
     }
 
     #[test]
@@ -185,11 +188,12 @@ mod tests {
         let session_class = Class::new("Session".to_string());
         let profile_class = Class::new("Profile".to_string());
 
-        user_class.add_variable(Variable::named_variable(
-            "current_session".to_string(),
-            "Session".to_string(),
-            None,
-        ));
+        user_class.add_variable(Variable {
+            name: Some("current_session".to_string()),
+            var_type: "Session".to_string(),
+            inner_types: None,
+            private: false,
+        });
         user_class.add_function(Function::new(
             "get_profile".to_string(),
             Variable::new("Profile".to_string()),

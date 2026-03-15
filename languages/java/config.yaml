@@ -36,7 +36,6 @@ wrapper_patterns:
   - struct_item
 skip_patterns:
   - modifiers
-  - visibility_modifier
   - storage_class
   - attribute_item
   - type_parameters
@@ -44,3 +43,11 @@ import_patterns:
   - import_declaration
 namespace_patterns:
   - package_declaration
+visibility_modifier_patterns:
+  - modifiers
+private_by_default: false
+public_modifier_patterns: 
+  - public
+private_modifier_patterns:
+  - private
+  - protected
