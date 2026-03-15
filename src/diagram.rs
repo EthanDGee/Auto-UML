@@ -8,6 +8,7 @@ pub struct Variable {
     pub var_type: String,
     pub inner_types: Option<Vec<String>>,
     pub name: Option<String>,
+    pub private: bool,
 }
 
 impl Variable {
@@ -16,23 +17,12 @@ impl Variable {
             var_type,
             inner_types: None,
             name: None,
+            private: false,
         }
     }
 
     pub fn void() -> Self {
         Variable::new(EMPTY_RETURN_TYPE.to_string())
-    }
-
-    pub fn named_variable(
-        name: String,
-        var_type: String,
-        inner_types: Option<Vec<String>>,
-    ) -> Self {
-        Variable {
-            var_type,
-            name: Some(name),
-            inner_types,
-        }
     }
 
     pub fn display_type(&self) -> String {
@@ -43,13 +33,24 @@ impl Variable {
             _ => self.var_type.clone(),
         }
     }
+
+    /// A modification of the this functions fmt::Display where it doesn't show access modifiers,
+    ///
+    /// This is primarily used for things like function arguments
+    pub fn hidden_access_to_string(&self) -> String {
+        match &self.name {
+            Some(name) => format!("{}:{}", name, self.display_type()),
+            None => self.display_type(),
+        }
+    }
 }
 
 impl fmt::Display for Variable {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let visibility = if self.private { "-" } else { "+" };
         match &self.name {
-            Some(name) => write!(f, "{}: {}", name, self.display_type()),
-            None => write!(f, "{}", self.display_type()),
+            Some(name) => write!(f, "{}{}: {}", visibility, name, self.display_type()),
+            None => write!(f, "{}{}", visibility, self.display_type()),
         }
     }
 }
@@ -76,7 +77,11 @@ impl Function {
 
 impl fmt::Display for Function {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let args: Vec<String> = self.arguments.iter().map(|arg| arg.to_string()).collect();
+        let args: Vec<String> = self
+            .arguments
+            .iter()
+            .map(|arg| arg.hidden_access_to_string())
+            .collect();
         write!(
             f,
             "{}({}) {}",
@@ -201,6 +206,7 @@ impl<'a> Diagram<'a> {
                         var_type: main_type,
                         inner_types: inners,
                         name: None,
+                        private: false,
                     }
                 };
                 let mut func = Function::new(name, return_type);
@@ -224,7 +230,13 @@ impl<'a> Diagram<'a> {
                 } else {
                     Vec::new()
                 };
-                let var = Variable::named_variable(name, main_type, Some(inners));
+                let is_private = self.extract_visibility(node, source);
+                let var = Variable {
+                    var_type: main_type,
+                    name: Some(name),
+                    inner_types: Some(inners),
+                    private: is_private,
+                };
                 if let Some(idx) = next_class_index {
                     self.classes[idx].add_variable(var);
                 }
@@ -313,6 +325,34 @@ impl<'a> Diagram<'a> {
         vec![EMPTY_RETURN_TYPE.to_string()]
     }
 
+    /// Helper to extract the visibility of variables and functions
+    fn extract_visibility(&self, node: Node, source: &[u8]) -> bool {
+        let mut cursor = node.walk();
+        for child in node.children(&mut cursor) {
+            let kind = child.kind();
+            if self
+                .lang
+                .visibility_modifier_patterns
+                .iter()
+                .any(|p| p == kind)
+            {
+                let modifier =
+                    String::from_utf8_lossy(&source[child.start_byte()..child.end_byte()])
+                        .to_string();
+
+                let is_private = self.lang.private_modifier_patterns.contains(&modifier);
+                let is_public = self.lang.public_modifier_patterns.contains(&modifier);
+
+                if is_private {
+                    return true;
+                } else if is_public {
+                    return false;
+                }
+            }
+        }
+        self.lang.private_by_default
+    }
+
     /// Helper to extract parameters and add them to a function.
     fn extract_parameters(&self, node: Node, source: &[u8], func: &mut Function) {
         let mut cursor = node.walk();
@@ -344,11 +384,12 @@ impl<'a> Diagram<'a> {
                         };
 
                         if !p_name.is_empty() {
-                            func.add_argument(Variable::named_variable(
-                                p_name,
-                                main_type,
-                                Some(inners),
-                            ));
+                            func.add_argument(Variable {
+                                var_type: main_type,
+                                name: Some(p_name),
+                                inner_types: Some(inners),
+                                private: false,
+                            });
                         }
                     }
                 }
@@ -380,14 +421,6 @@ mod tests {
     }
 
     #[test]
-    fn test_variable_new_named() {
-        let var = Variable::named_variable("x".to_string(), "i32".to_string(), None);
-        assert_eq!(var.var_type, "i32");
-        assert_eq!(var.inner_types, None);
-        assert_eq!(var.name, Some("x".to_string()));
-    }
-
-    #[test]
     fn test_function_new() {
         let func = Function::new("test_func".to_string(), Variable::void());
         assert_eq!(func.name, "test_func");
@@ -398,7 +431,12 @@ mod tests {
     #[test]
     fn test_function_add_argument() {
         let mut func = Function::new("test_func".to_string(), Variable::void());
-        let var = Variable::named_variable("arg1".to_string(), "String".to_string(), None);
+        let var = Variable {
+            name: Some("arg1".to_string()),
+            var_type: "String".to_string(),
+            inner_types: None,
+            private: false,
+        };
         func.add_argument(var);
         assert_eq!(func.arguments.len(), 1);
         assert_eq!(func.arguments[0].var_type, "String");
@@ -424,7 +462,12 @@ mod tests {
     #[test]
     fn test_class_add_items() {
         let mut class = Class::new("MyClass".to_string());
-        let var = Variable::named_variable("field1".to_string(), "u32".to_string(), None);
+        let var = Variable {
+            name: Some("field1".to_string()),
+            var_type: "u32".to_string(),
+            inner_types: None,
+            private: false,
+        };
         let func = Function::new("method1".to_string(), Variable::void());
         class.add_variable(var);
         class.add_function(func);

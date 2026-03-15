@@ -1,4 +1,4 @@
-use include_dir::{include_dir, Dir};
+use include_dir::{Dir, include_dir};
 use serde::Deserialize;
 use std::path::Path;
 
@@ -18,6 +18,10 @@ pub struct LangConfig {
     pub skip_patterns: Vec<String>,
     pub import_patterns: Vec<String>,
     pub namespace_patterns: Vec<String>,
+    pub visibility_modifier_patterns: Vec<String>,
+    pub private_by_default: bool,
+    pub public_modifier_patterns: Vec<String>,
+    pub private_modifier_patterns: Vec<String>,
 }
 
 impl LangConfig {

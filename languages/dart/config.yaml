@@ -50,3 +50,9 @@ import_patterns:
   - import_directive
 namespace_patterns:
   - library_directive
+visibility_modifier_patterns: []
+private_by_default: false
+public_modifier_patterns: 
+  - public
+private_modifier_patterns:
+  - private
