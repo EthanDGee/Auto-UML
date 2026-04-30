@@ -5,6 +5,7 @@ mod stitcher;
 use crate::diagram::Diagram;
 use crate::lang_config::LangConfig;
 use clap::{ArgGroup, Parser};
+use std::collections::HashSet;
 use std::fs;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tree_sitter::Parser as TreeSitterParser;
@@ -34,6 +35,23 @@ struct Args {
     /// Write destination file for the exporter
     #[arg(short, long, default_value("UML.md"))]
     destination: String,
+
+    /// Regex patterns for input/start classes. Only classes reachable from these are shown.
+    /// Can be specified multiple times (e.g. --filter-input "^Foo" --filter-input "Bar$").
+    #[arg(long)]
+    filter_input: Vec<String>,
+
+    /// Regex patterns for output/end classes. When combined with --filter-input, only classes
+    /// on a path from an input class to an output class are shown.
+    /// Can be specified multiple times.
+    #[arg(long)]
+    filter_output: Vec<String>,
+
+    /// Relation types to include when traversing and drawing edges.
+    /// Valid values: inheritance, composition, aggregation, association, link, dependency, realization.
+    /// Can be specified multiple times. If omitted, all relation types are used.
+    #[arg(long)]
+    filter_relations: Vec<String>,
 }
 
 fn detect_language(path: &std::path::Path) -> Option<String> {
@@ -118,7 +136,7 @@ fn get_parser(lang: &str) -> TreeSitterParser {
     parser
 }
 
-fn main() {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
 
     // list languages and exit early
@@ -127,7 +145,7 @@ fn main() {
         for lang in LangConfig::list_languages() {
             println!(" - {}", lang);
         }
-        return;
+        return Ok(());
     }
 
     // Handle the optional remote git directory
@@ -206,9 +224,42 @@ fn main() {
         program_diagram
     };
 
+    // Parse --filter-relations
+    let allowed_relations: Option<HashSet<mermaid::Relation>> = if args.filter_relations.is_empty()
+    {
+        None
+    } else {
+        let mut set = HashSet::new();
+        for s in &args.filter_relations {
+            set.insert(s.parse::<mermaid::Relation>()?);
+        }
+        Some(set)
+    };
+
+    let filter = if args.filter_input.is_empty()
+        && args.filter_output.is_empty()
+        && allowed_relations.is_none()
+    {
+        None
+    } else {
+        Some(mermaid::FilterConfig {
+            filter_input: if args.filter_input.is_empty() {
+                None
+            } else {
+                Some(args.filter_input)
+            },
+            filter_output: if args.filter_output.is_empty() {
+                None
+            } else {
+                Some(args.filter_output)
+            },
+            allowed_relations,
+        })
+    };
+
     let mermaid: String = match args.no_mermaid {
-        true => mermaid::generate(&final_diagram),
-        false => mermaid::generate_code_block(&final_diagram),
+        true => mermaid::generate(&final_diagram, filter.as_ref()),
+        false => mermaid::generate_code_block(&final_diagram, filter.as_ref()),
     };
 
     // pass to the exporter and write
@@ -220,4 +271,5 @@ fn main() {
         println!("Cleaning up temporary directory...");
         std::fs::remove_dir_all(&temp_path).ok();
     }
+    Ok(())
 }
