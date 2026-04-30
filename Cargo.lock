@@ -76,6 +76,7 @@ dependencies = [
  "glob",
  "include_dir",
  "pretty_assertions",
+ "regex",
  "serde",
  "serde_yml",
  "tree-sitter",

@@ -123,7 +123,7 @@ fn run_test(
     let uml_path = get_uml_for_category(config, category);
     let expected_uml = std::fs::read_to_string(&uml_path).expect("failed to read uml file");
 
-    let generated_uml = generate(&diagram);
+    let generated_uml = generate(&diagram, None);
     let generated_uml = generated_uml.trim();
     let expected_uml = expected_uml.trim();
 
@@ -190,7 +190,7 @@ fn test_stitcher_integration() {
     assert!(current_user_var.var_type == "models_User" || current_user_var.var_type == "auth_User");
 
     // Verify edge generation in Mermaid
-    let output = generate(diagram);
+    let output = generate(diagram, None);
     assert!(output.contains("App --> models_Post"));
 }
 
@@ -284,7 +284,7 @@ fn test_mermaid_smoke() {
         .expect("Rust config not found");
     // Just verify it doesn't crash and produces basic output for the first language
     run_test(rust_config, "simple_struct", |diagram, _| {
-        let output = generate(diagram);
+        let output = generate(diagram, None);
         assert!(output.contains("classDiagram"));
         assert!(output.contains("User"));
     });
