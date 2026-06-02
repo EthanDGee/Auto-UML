@@ -110,6 +110,11 @@ fn get_parser(lang: &str) -> TreeSitterParser {
                 .set_language(&tree_sitter_dart::language())
                 .expect("Error loading dart grammar");
         }
+        "kotlin" | "kt" => {
+            parser
+                .set_language(&tree_sitter_kotlin::LANGUAGE.into())
+                .expect("Error loading Kotlin grammar");
+        }
         _ => {
             println!("Error {} is not a supported language", lang);
             std::process::exit(404);

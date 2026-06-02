@@ -1,0 +1,7 @@
+name: kotlin
+path_prefix: languages/kotlin/examples
+files:
+  simple_struct: User.kt
+  impl_block: Calculator.kt
+  complex_types: ComplexData.kt
+  generics: Box.kt

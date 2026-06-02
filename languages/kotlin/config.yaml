@@ -1,0 +1,42 @@
+file_extensions:
+  - kt
+  - kts
+class_patterns:
+  - class_declaration
+  - object_declaration
+  - interface_declaration
+function_patterns:
+  - function_declaration
+  - secondary_constructor
+variable_patterns:
+  - property_declaration
+identifier_patterns:
+  - identifier
+  - constructor
+type_patterns:
+  - user_type
+  - nullable_type
+  - primitive_type
+parameter_container_patterns:
+  - function_value_parameters
+parameter_patterns:
+  - parameter
+wrapper_patterns:
+  - property_declaration
+  - variable_declaration
+skip_patterns:
+  - modifiers
+  - type_parameters
+import_patterns:
+  - import
+namespace_patterns:
+  - package_header
+visibility_modifier_patterns:
+  - modifiers
+private_by_default: false
+public_modifier_patterns:
+  - public
+private_modifier_patterns:
+  - private
+  - protected
+  - internal

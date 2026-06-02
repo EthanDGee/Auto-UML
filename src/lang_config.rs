@@ -46,6 +46,7 @@ impl LangConfig {
             "csharp" | "cs" | "c-sharp" => "csharp",
             "objective-c" | "objc" => "objc",
             "dart" => "dart",
+            "kotlin" | "kt" => "kotlin",
             _ => language,
         };
 
@@ -81,6 +82,7 @@ impl LangConfig {
             "csharp",
             "objective-c",
             "dart",
+            "kotlin",
         ]
     }
 }
