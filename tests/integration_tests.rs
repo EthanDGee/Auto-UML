@@ -28,6 +28,7 @@ fn load_test_configs() -> Vec<LangTestConfig> {
         "typescript",
         "objc",
         "dart",
+        "kotlin",
     ];
 
     for lang in langs {
@@ -86,6 +87,11 @@ fn setup_parser(lang: &str) -> Parser {
             parser
                 .set_language(&tree_sitter_dart::language())
                 .expect("Error loading Dart grammar");
+        }
+        "kotlin" => {
+            parser
+                .set_language(&tree_sitter_kotlin::LANGUAGE.into())
+                .expect("Error loading Kotlin grammar");
         }
         _ => panic!("Unsupported language: {}", lang),
     }

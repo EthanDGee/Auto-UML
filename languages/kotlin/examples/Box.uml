@@ -1,0 +1,6 @@
+classDiagram
+    class Box {
+        -inner: T
+        +constructor(inner:T) void
+        +get() T
+    }

@@ -321,6 +321,14 @@ impl<'a> Diagram<'a> {
                 }
                 return vec![full_type];
             }
+
+            // Recurse into certain nodes that wrap types
+            if self.lang.wrapper_patterns.iter().any(|p| p == kind) {
+                let types = self.extract_type(child, source);
+                if !types.is_empty() && types[0] != EMPTY_RETURN_TYPE {
+                    return types;
+                }
+            }
         }
         vec![EMPTY_RETURN_TYPE.to_string()]
     }
