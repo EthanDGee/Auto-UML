@@ -1,4 +1,5 @@
 mod diagram;
+mod graphviz;
 mod lang_config;
 mod mermaid;
 mod stitcher;
@@ -8,6 +9,12 @@ use clap::{ArgGroup, Parser};
 use std::fs;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tree_sitter::Parser as TreeSitterParser;
+
+#[derive(clap::ValueEnum, Clone, Debug, PartialEq, Eq)]
+enum Format {
+    Mermaid,
+    Graphviz,
+}
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -27,7 +34,11 @@ struct Args {
     #[arg(long, conflicts_with = "source_code")]
     git: Option<String>,
 
-    /// Outputs the computed mermaid diagram without surrounding markdown code block
+    /// Format to export (mermaid or graphviz)
+    #[arg(short, long, value_enum, default_value_t = Format::Mermaid)]
+    format: Format,
+
+    /// Outputs the computed diagram without surrounding markdown code block
     #[arg(long, action = clap::ArgAction::SetTrue)]
     no_mermaid: bool,
 
@@ -211,13 +222,19 @@ fn main() {
         program_diagram
     };
 
-    let mermaid: String = match args.no_mermaid {
-        true => mermaid::generate(&final_diagram),
-        false => mermaid::generate_code_block(&final_diagram),
+    let output_content: String = match args.format {
+        Format::Mermaid => match args.no_mermaid {
+            true => mermaid::generate(&final_diagram),
+            false => mermaid::generate_code_block(&final_diagram),
+        },
+        Format::Graphviz => match args.no_mermaid {
+            true => graphviz::generate(&final_diagram),
+            false => graphviz::generate_code_block(&final_diagram),
+        },
     };
 
     // pass to the exporter and write
-    fs::write(&args.destination, mermaid).expect("Failed to write to destination file");
+    fs::write(&args.destination, output_content).expect("Failed to write to destination file");
     println!("Diagram written to {}", args.destination);
 
     // Clean up temp directory if we cloned from git
