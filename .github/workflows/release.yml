@@ -1,61 +1,33 @@
-name: crates-release
-description: Increment crate version and release on crates.io
-author: kaleidawave
-branding:
-  icon: arrow-up-circle
-  color: red
+name: Release crate
 
-inputs:
-  version:
-    description: A version argument, Can be major/minor/patch or semver. For monorepos a JSON map of crate name to release argument
-    required: true
-  crates-token:
-    description: crates.io token for publishing
-    required: true
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "major/minor/patch or semver"
+        required: false
+        default: "patch"
 
-outputs:
-  new-version:
-    description: A single new version, "none" if multiple crates are updated
-    value: ${{ steps.updater.outputs.new-version }}
-  new-versions:
-    description: A JSON array of crates and their new versions
-    value: ${{ steps.updater.outputs.new-versions }}
-  new-versions-description:
-    description: A outline of what was updated to what versions
-    value: ${{ steps.updater.outputs.new-versions-description }}
-  new-versions-json-object:
-    description: JSON object where keys are crates and values are the new version semver string
-    value: ${{ steps.updater.outputs.new-versions-json-object }}
+concurrency: release-crate
 
-runs:
-  using: "composite"
-  steps:
-    - id: is-repo-initilized
-      run: echo "remote-url=$( git config --get remote.origin.url )" >> $GITHUB_OUTPUT
-      shell: bash
-
-    - uses: actions/checkout@v3
-      if: ${{ !contains(steps.is-repo-initilized.outputs.remote-url, github.repository) }}
-
-    - name: Install dependencies (pip)
-      run: pip install tomlkit==0.11.6 semver==2.13.0
-      shell: bash
-
-    - name: Run script
-      id: updater
-      run: python ${{ github.action_path }}/updater.py '${{ inputs.version }}'
-      shell: bash
-
-    - name: Publish on crates.io
-      run: |
-        echo "::group::Cargo publish"
-        echo '${{ steps.updater.outputs.updated-cargo-toml-paths }}' | jq -r '.[]' | while read -r updated; do
-          # Wait for updates to local crates to be fully registered on crates.io
-          sleep 15
-          cargo publish --allow-dirty --manifest-path $updated
-          cargo update --manifest-path $updated --quiet
-        done
-        echo "::endgroup::"
-      env:
-        CARGO_REGISTRY_TOKEN: ${{ inputs.crates-token }}
-      shell: bash
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set git credentials
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+      - name: Crates publish
+        uses: kaleidawave/crates-release-gh-action@main
+        id: release
+        with:
+          version: ${{ github.event.inputs.version }}
+          crates-token: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+      - name: Push updated Cargo.toml
+        run: |
+          git add .
+          git commit -m "Release: ${{ steps.release.outputs.new-versions-description }}"
+          git tag "release/${{ steps.release.outputs.new-version }}"
+          git push --tags origin main
