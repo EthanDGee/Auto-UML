@@ -1,26 +1,5 @@
 ```mermaid
 classDiagram
-    class LangConfig {
-        +file_extensions: Vec~String~
-        +class_patterns: Vec~String~
-        +function_patterns: Vec~String~
-        +variable_patterns: Vec~String~
-        +identifier_patterns: Vec~String~
-        +type_patterns: Vec~String~
-        +parameter_container_patterns: Vec~String~
-        +parameter_patterns: Vec~String~
-        +wrapper_patterns: Vec~String~
-        +skip_patterns: Vec~String~
-        +import_patterns: Vec~String~
-        +namespace_patterns: Vec~String~
-        +visibility_modifier_patterns: Vec~String~
-        +private_by_default: bool
-        +public_modifier_patterns: Vec~String~
-        +private_modifier_patterns: Vec~String~
-        +all_configs() Vec~(String, Self)~
-        +load(language:&str) Self
-        +list_languages() Vec~&'static str~
-    }
     class Edge {
         -source: String
         -destination: String
@@ -60,6 +39,27 @@ classDiagram
         +imports: Vec~String~
         -lang: &'a LangConfig
     }
+    class LangConfig {
+        +file_extensions: Vec~String~
+        +class_patterns: Vec~String~
+        +function_patterns: Vec~String~
+        +variable_patterns: Vec~String~
+        +identifier_patterns: Vec~String~
+        +type_patterns: Vec~String~
+        +parameter_container_patterns: Vec~String~
+        +parameter_patterns: Vec~String~
+        +wrapper_patterns: Vec~String~
+        +skip_patterns: Vec~String~
+        +import_patterns: Vec~String~
+        +namespace_patterns: Vec~String~
+        +visibility_modifier_patterns: Vec~String~
+        +private_by_default: bool
+        +public_modifier_patterns: Vec~String~
+        +private_modifier_patterns: Vec~String~
+        +all_configs() Vec~(String, Self)~
+        +load(language:&str) Self
+        +list_languages() Vec~&'static str~
+    }
     class File {
         +diagram: Diagram~'a~
     }
@@ -79,13 +79,19 @@ classDiagram
         +config: &'a crate::lang_config::LangConfig
         +parser: TreeSitterParser
     }
+    class Edge {
+        -source: String
+        -destination: String
+        -edge_type: Relation
+    }
     class Args {
         -list_languages: bool
         -lang: Option~String~
         -source_code: String
         -git: Option~String~
-        -no_mermaid: bool
-        -destination: String
+        -format: Format
+        -code_block: bool
+        -destination: Option~String~
     }
     Function --> Variable
     Function --> Variable
