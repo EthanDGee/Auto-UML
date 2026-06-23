@@ -1,0 +1,61 @@
+name: crates-release
+description: Increment crate version and release on crates.io
+author: kaleidawave
+branding:
+  icon: arrow-up-circle
+  color: red
+
+inputs:
+  version:
+    description: A version argument, Can be major/minor/patch or semver. For monorepos a JSON map of crate name to release argument
+    required: true
+  crates-token:
+    description: crates.io token for publishing
+    required: true
+
+outputs:
+  new-version:
+    description: A single new version, "none" if multiple crates are updated
+    value: ${{ steps.updater.outputs.new-version }}
+  new-versions:
+    description: A JSON array of crates and their new versions
+    value: ${{ steps.updater.outputs.new-versions }}
+  new-versions-description:
+    description: A outline of what was updated to what versions
+    value: ${{ steps.updater.outputs.new-versions-description }}
+  new-versions-json-object:
+    description: JSON object where keys are crates and values are the new version semver string
+    value: ${{ steps.updater.outputs.new-versions-json-object }}
+
+runs:
+  using: "composite"
+  steps:
+    - id: is-repo-initilized
+      run: echo "remote-url=$( git config --get remote.origin.url )" >> $GITHUB_OUTPUT
+      shell: bash
+
+    - uses: actions/checkout@v3
+      if: ${{ !contains(steps.is-repo-initilized.outputs.remote-url, github.repository) }}
+
+    - name: Install dependencies (pip)
+      run: pip install tomlkit==0.11.6 semver==2.13.0
+      shell: bash
+
+    - name: Run script
+      id: updater
+      run: python ${{ github.action_path }}/updater.py '${{ inputs.version }}'
+      shell: bash
+
+    - name: Publish on crates.io
+      run: |
+        echo "::group::Cargo publish"
+        echo '${{ steps.updater.outputs.updated-cargo-toml-paths }}' | jq -r '.[]' | while read -r updated; do
+          # Wait for updates to local crates to be fully registered on crates.io
+          sleep 15
+          cargo publish --allow-dirty --manifest-path $updated
+          cargo update --manifest-path $updated --quiet
+        done
+        echo "::endgroup::"
+      env:
+        CARGO_REGISTRY_TOKEN: ${{ inputs.crates-token }}
+      shell: bash
