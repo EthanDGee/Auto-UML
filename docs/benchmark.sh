@@ -66,6 +66,7 @@ pull_codebases() {
   clone_repo "jupyterlab" "https://github.com/jupyterlab/jupyterlab"
   clone_repo "bitwarden-server" "https://github.com/bitwarden/server"
   clone_repo "Platypus" "https://github.com/sveinbjornt/Platypus"
+  clone_repo "ktlint" "https://github.com/ktlint/ktlint"
 
   cd "$SCRIPT_DIR"
 }
@@ -90,6 +91,7 @@ run_benchmarks() {
   run_benchmark "JupyterLab" "$BENCHMARK_DIR/jupyterlab" "typescript"
   run_benchmark "bitwarden-server" "$BENCHMARK_DIR/bitwarden-server" "csharp"
   run_benchmark "Platypus" "$BENCHMARK_DIR/Platypus" "objective-c"
+  run_benchmark "ktlint" "$BENCHMARK_DIR/ktlint" "kotlin"
 }
 
 cleanup() {

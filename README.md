@@ -18,7 +18,7 @@ A lightning fast automatic UML diagram generator that uses tree-sitter to parse 
 
 ## Features
 
-- **Multi-language support**: Rust, Java, JavaScript, TypeScript, C++, C#, Objective-C, and Dart.
+- **Multi-language support**: Rust, Java, JavaScript, TypeScript, C++, C#, Objective-C, Dart, and Kotlin.
 - **Single file analysis**: Generate UML diagrams from individual source files.
 - **Repository-scale analysis**: Process entire directories and merge diagrams across multiple files.
 - **Remote Analysis**: Clone and analyze remote git repositories directly.
@@ -65,7 +65,7 @@ auto-uml --no-mermaid
 ### Full Options
 
 | Flag | Description |
-|------|-------------|
+| ------ | ------------- |
 | `--list-languages` | List available programming languages |
 | `-l`, `--lang <LANG>` | Programming language (optional, auto-detected if omitted) |
 | `-s`, `--source-code <PATH>` | Path to the local source file or directory (defaults to  current directory) |
@@ -75,16 +75,17 @@ auto-uml --no-mermaid
 
 ## Supported Languages
 
-| Language    | Extensions        |
-|-------------|------------------|
-| rust        | `.rs`            |
-| java        | `.java`          |
-| javascript  | `.js`            |
-| typescript  | `.ts`, `.tsx`    |
+| Language    | Extensions                          |
+|-------------|-------------------------------------|
 | cpp         | `.cpp`, `.cc`, `.cxx`, `.hpp`, `.h` |
-| csharp      | `.cs`            |
-| objective-c | `.m`, `.h`       |
-| dart        | `.dart`          |
+| rust        | `.rs`                               |
+| java        | `.java`                             |
+| javascript  | `.js`                               |
+| typescript  | `.ts`, `.tsx`                       |
+| csharp      | `.cs`                               |
+| objective-c | `.m`, `.h`                          |
+| dart        | `.dart`                             |
+| kotlin      | `.kt`                               |
 
 ## Output
 
@@ -138,7 +139,7 @@ classDiagram
 
 Auto-UML is designed from the ground up to be extremely fast. Since it works with a per-file LR representation that is merged recursively it can also work on extremely large code bases. Most code bases can be done in milliseconds with the larger ones taking seconds. Making it a great addition to your CI/CD pipeline or for personal use.
 
-> **Disclaimer**: All benchmarks were performed on the latest main branch as of March 10, 2026.
+> **Disclaimer**: All benchmarks were performed on the latest main branch as of June 22, 2026.
 
 ### Test code bases
 
@@ -162,16 +163,19 @@ All of the following tests were done using hyperfine with 100 runs.
 
 - [Platypus](https://github.com/sveinbjornt/Platypus) - An Objective-C macOS application. Contains approximately 30 Objective-C files.
 
+- [ktlint](https://github.com/pinterest/ktlint) - An anti-bikeshedding Kotlin linter with built-in formatter. Contains approximately 400 Kotlin files.
+
 ### Results
 
 | Codebase                                                      | Language      | Mean runtime | Standard Deviation | Min       | Max       |
 | ------------------------------------------------------------ | ------------- | ------------ | ------------------ | --------- | --------- |
-| [This Codebase](https://github.com/anomalyco/auto-UML)      | Rust          | 36.3 ms      | 7.0 ms             | 23.8 ms   | 43.3 ms   |
-| [Chart.js](https://github.com/chartjs/Chart.js)             | JavaScript    | 520.8 ms     | 36.2 ms            | 480.8 ms  | 593.0 ms  |
-| [CoreUtils](https://github.com/uutils/coreutils.git)         | Rust          | 2.118 s      | 0.090 s            | 2.008 s   | 2.255 s   |
-| [BuildCLI](https://github.com/BuildCLI/BuildCLI)            | Java          | 157.3 ms     | 10.5 ms            | 139.8 ms  | 172.9 ms  |
-| [faker-cxx](https://github.com/cieslarmichal/faker-cxx)     | C++           | 1.187 s      | 0.094 s            | 1.105 s   | 1.368 s   |
-| [authpass](https://github.com/authpass/authpass.git)         | Dart          | 609.4 ms     | 51.0 ms            | 565.3 ms  | 691.2 ms  |
-| [jupyterlab](https://github.com/jupyterlab/jupyterlab)       | TypeScript    | 2.492 s      | 0.093 s            | 2.398 s   | 2.659 s   |
-| [bitwarden-server](https://github.com/bitwarden/server)     | C#            | 20.583 s     | 0.293 s            | 20.233 s  | 21.134 s  |
-| [Platypus](https://github.com/sveinbjornt/Platypus)         | Objective-C   | 231.6 ms     | 10.1 ms            | 217.7 ms  | 252.3 ms  |
+| [This Codebase](https://github.com/anomalyco/auto-UML)      | Rust          | 12.4 ms      | 2.3 ms             | 7.9 ms    | 20.1 ms   |
+| [Chart.js](https://github.com/chartjs/Chart.js)             | JavaScript    | 211.3 ms     | 12.6 ms            | 190.8 ms  | 258.9 ms  |
+| [CoreUtils](https://github.com/uutils/coreutils.git)         | Rust          | 999.0 ms     | 36.0 ms            | 892.3 ms  | 1184.1 ms |
+| [BuildCLI](https://github.com/BuildCLI/BuildCLI)            | Java          | 75.1 ms      | 2.5 ms             | 70.6 ms   | 83.0 ms   |
+| [faker-cxx](https://github.com/cieslarmichal/faker-cxx)     | C++           | 556.7 ms     | 27.6 ms            | 511.5 ms  | 700.8 ms  |
+| [authpass](https://github.com/authpass/authpass.git)         | Dart          | 282.3 ms     | 3.4 ms             | 277.5 ms  | 297.9 ms  |
+| [jupyterlab](https://github.com/jupyterlab/jupyterlab)       | TypeScript    | 1.197 s      | 0.049 s            | 1.120 s   | 1.417 s   |
+| [bitwarden-server](https://github.com/bitwarden/server)     | C#            | 10.924 s     | 0.729 s            | 10.000 s  | 14.733 s  |
+| [Platypus](https://github.com/sveinbjornt/Platypus)         | Objective-C   | 110.5 ms     | 2.7 ms             | 105.5 ms  | 120.4 ms  |
+| [ktlint](https://github.com/pinterest/ktlint)                 | Kotlin        | 371.1 ms     | 5.1 ms             | 361.5 ms  | 394.6 ms  |
