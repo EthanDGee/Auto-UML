@@ -42,9 +42,9 @@ struct Args {
     #[arg(long, action = clap::ArgAction::SetTrue)]
     code_block: bool,
 
-    /// Write destination file for the exporter
-    #[arg(short, long, default_value("UML.md"))]
-    destination: String,
+    /// Write destination file for the exporter. Defaults to UML.<file extension>
+    #[arg(short, long)]
+    destination: Option<String>,
 }
 
 fn detect_language(path: &std::path::Path) -> Option<String> {
@@ -233,9 +233,21 @@ fn main() {
         },
     };
 
+    let dest_path = args.destination.clone().unwrap_or_else(|| {
+        let ext = if args.code_block {
+            "md"
+        } else {
+            match args.format {
+                Format::Mermaid => "mmd",
+                Format::Graphviz => "dot",
+            }
+        };
+        format!("UML.{}", ext)
+    });
+
     // pass to the exporter and write
-    fs::write(&args.destination, output_content).expect("Failed to write to destination file");
-    println!("Diagram written to {}", args.destination);
+    fs::write(&dest_path, output_content).expect("Failed to write to destination file");
+    println!("Diagram written to {}", dest_path);
 
     // Clean up temp directory if we cloned from git
     if let Some(temp_path) = temp_dir {
