@@ -1,6 +1,5 @@
 use crate::diagram;
 
-
 #[allow(dead_code)]
 enum Relation {
     Inheritance,
@@ -50,7 +49,9 @@ pub fn generate(uml_diagram: &diagram::Diagram) -> String {
     let mut output = String::from("digraph G {\n");
     output.push_str("    fontname=\"Helvetica,Arial,sans-serif\"\n");
     output.push_str("    node [fontname=\"Helvetica,Arial,sans-serif\", fontsize=10, shape=record, style=\"filled\", fillcolor=\"#f9f9f9\", color=\"#333333\"]\n");
-    output.push_str("    edge [fontname=\"Helvetica,Arial,sans-serif\", fontsize=10, color=\"#333333\"]\n");
+    output.push_str(
+        "    edge [fontname=\"Helvetica,Arial,sans-serif\", fontsize=10, color=\"#333333\"]\n",
+    );
     output.push_str("    rankdir=BT\n\n");
 
     // Group classes by namespace
@@ -219,8 +220,8 @@ pub fn generate_code_block(uml_diagram: &diagram::Diagram) -> String {
 mod tests {
     use crate::{
         diagram::{Class, Diagram, Function, Variable},
-        lang_config::LangConfig,
         graphviz::generate,
+        lang_config::LangConfig,
     };
 
     #[test]

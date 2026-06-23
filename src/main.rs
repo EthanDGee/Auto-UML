@@ -38,9 +38,9 @@ struct Args {
     #[arg(short, long, value_enum, default_value_t = Format::Mermaid)]
     format: Format,
 
-    /// Outputs the computed diagram without surrounding markdown code block
+    /// Wrap the output in a markdown code block (```mermaid or ```dot)
     #[arg(long, action = clap::ArgAction::SetTrue)]
-    no_mermaid: bool,
+    code_block: bool,
 
     /// Write destination file for the exporter
     #[arg(short, long, default_value("UML.md"))]
@@ -223,13 +223,13 @@ fn main() {
     };
 
     let output_content: String = match args.format {
-        Format::Mermaid => match args.no_mermaid {
-            true => mermaid::generate(&final_diagram),
-            false => mermaid::generate_code_block(&final_diagram),
+        Format::Mermaid => match args.code_block {
+            true => mermaid::generate_code_block(&final_diagram),
+            false => mermaid::generate(&final_diagram),
         },
-        Format::Graphviz => match args.no_mermaid {
-            true => graphviz::generate(&final_diagram),
-            false => graphviz::generate_code_block(&final_diagram),
+        Format::Graphviz => match args.code_block {
+            true => graphviz::generate_code_block(&final_diagram),
+            false => graphviz::generate(&final_diagram),
         },
     };
 
