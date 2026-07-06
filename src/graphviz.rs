@@ -254,6 +254,6 @@ mod tests {
         assert!(output.contains("\"User\""));
         assert!(output.contains("label="));
         assert!(output.contains("id: u64"));
-        assert!(output.contains("login(token:String) bool"));
+        assert!(output.contains("login(token: String) bool"));
     }
 }

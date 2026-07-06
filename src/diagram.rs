@@ -39,7 +39,10 @@ impl Variable {
     /// This is primarily used for things like function arguments
     pub fn hidden_access_to_string(&self) -> String {
         match &self.name {
-            Some(name) => format!("{}:{}", name, self.display_type()),
+            Some(name) if self.var_type != EMPTY_RETURN_TYPE => {
+                format!("{}: {}", name, self.display_type())
+            }
+            Some(name) => name.clone(),
             None => self.display_type(),
         }
     }
@@ -94,6 +97,7 @@ impl fmt::Display for Function {
 pub struct Class {
     pub name: String,
     pub namespace: String,
+    pub type_params: Vec<String>,
     pub functions: Vec<Function>,
     pub variables: Vec<Variable>,
 }
@@ -104,6 +108,7 @@ impl Class {
         Class {
             name,
             namespace: String::new(),
+            type_params: Vec::new(),
             functions: Vec::new(),
             variables: Vec::new(),
         }
@@ -113,8 +118,17 @@ impl Class {
         Class {
             name,
             namespace,
+            type_params: Vec::new(),
             functions: Vec::new(),
             variables: Vec::new(),
+        }
+    }
+
+    pub fn display_name(&self) -> String {
+        if self.type_params.is_empty() {
+            self.name.clone()
+        } else {
+            format!("{}~{}~", self.name, self.type_params.join(", "))
         }
     }
 
@@ -174,17 +188,22 @@ impl<'a> Diagram<'a> {
         } else if self.lang.class_patterns.iter().any(|p| p == kind) {
             let name = self.extract_identifier(node, source);
             if !name.is_empty() {
+                let type_params = self.extract_class_type_params(node, source);
                 // update class index to match preexisting class if already exist
                 if let Some(idx) = self
                     .classes
                     .iter()
                     .position(|class| class.name == name && class.namespace == active_namespace)
                 {
+                    if !type_params.is_empty() && self.classes[idx].type_params.is_empty() {
+                        self.classes[idx].type_params = type_params;
+                    }
                     next_class_index = Some(idx);
                 } else {
                     // create new class and update indexes
-                    self.classes
-                        .push(Class::with_namespace(name, active_namespace.clone()));
+                    let mut new_class = Class::with_namespace(name, active_namespace.clone());
+                    new_class.type_params = type_params;
+                    self.classes.push(new_class);
                     next_class_index = Some(self.classes.len() - 1);
                 }
             }
@@ -291,6 +310,10 @@ impl<'a> Diagram<'a> {
         for child in node.children(&mut cursor) {
             let kind = child.kind();
 
+            if self.lang.skip_patterns.iter().any(|p| p == kind) {
+                continue;
+            }
+
             if self
                 .lang
                 .type_patterns
@@ -303,7 +326,8 @@ impl<'a> Diagram<'a> {
 
                 // Naive parsing of generics: "Vec<User>" -> ["Vec", "User"]
                 if let Some(pos) = full_type.find('<') {
-                    let main = full_type[..pos].trim().to_string();
+                    let raw_main = full_type[..pos].trim();
+                    let main = self.strip_type_path(raw_main);
                     let mut inners = Vec::new();
                     if let Some(end_pos) = full_type.rfind('>') {
                         let inner_str = &full_type[pos + 1..end_pos];
@@ -319,7 +343,7 @@ impl<'a> Diagram<'a> {
                     result.append(&mut inners);
                     return result;
                 }
-                return vec![full_type];
+                return vec![self.strip_type_path(&full_type)];
             }
 
             // Recurse into certain nodes that wrap types
@@ -331,6 +355,44 @@ impl<'a> Diagram<'a> {
             }
         }
         vec![EMPTY_RETURN_TYPE.to_string()]
+    }
+
+    fn strip_type_path(&self, type_str: &str) -> String {
+        if self.lang.type_path_separator.is_empty() {
+            return type_str.to_string();
+        }
+        type_str
+            .rsplit(&self.lang.type_path_separator)
+            .next()
+            .unwrap_or(type_str)
+            .to_string()
+    }
+
+    fn extract_class_type_params(&self, node: Node, source: &[u8]) -> Vec<String> {
+        if self.lang.class_type_parameter_patterns.is_empty() {
+            return Vec::new();
+        }
+        let mut cursor = node.walk();
+        for child in node.children(&mut cursor) {
+            if self
+                .lang
+                .class_type_parameter_patterns
+                .iter()
+                .any(|p| p == child.kind())
+            {
+                let text =
+                    String::from_utf8_lossy(&source[child.start_byte()..child.end_byte()])
+                        .to_string();
+                // strip surrounding < > and split by comma
+                let inner = text.trim_start_matches('<').trim_end_matches('>');
+                return inner
+                    .split(',')
+                    .map(|s| s.trim().to_string())
+                    .filter(|s| !s.is_empty())
+                    .collect();
+            }
+        }
+        Vec::new()
     }
 
     /// Helper to extract the visibility of variables and functions
@@ -373,11 +435,34 @@ impl<'a> Diagram<'a> {
             {
                 let mut p_cursor = child.walk();
                 for param in child.children(&mut p_cursor) {
+                    let param_kind = param.kind();
+
+                    // Handle bare consuming `self` (not &self or &mut self)
+                    if self
+                        .lang
+                        .self_parameter_patterns
+                        .iter()
+                        .any(|p| p == param_kind)
+                    {
+                        let text =
+                            String::from_utf8_lossy(&source[param.start_byte()..param.end_byte()])
+                                .to_string();
+                        if !text.starts_with('&') {
+                            func.add_argument(Variable {
+                                var_type: EMPTY_RETURN_TYPE.to_string(),
+                                name: Some("self".to_string()),
+                                inner_types: None,
+                                private: false,
+                            });
+                        }
+                        continue;
+                    }
+
                     if self
                         .lang
                         .parameter_patterns
                         .iter()
-                        .any(|p| param.kind() == *p)
+                        .any(|p| param_kind == *p)
                     {
                         let p_name = self.extract_identifier(param, source);
                         let types = self.extract_type(param, source);

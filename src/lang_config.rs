@@ -22,6 +22,12 @@ pub struct LangConfig {
     pub private_by_default: bool,
     pub public_modifier_patterns: Vec<String>,
     pub private_modifier_patterns: Vec<String>,
+    #[serde(default)]
+    pub class_type_parameter_patterns: Vec<String>,
+    #[serde(default)]
+    pub type_path_separator: String,
+    #[serde(default)]
+    pub self_parameter_patterns: Vec<String>,
 }
 
 impl LangConfig {

@@ -23,97 +23,76 @@ pub fn generate(uml_diagram: &diagram::Diagram) -> String {
     let mut edges: Vec<Edge> = Vec::new();
     let mut output = String::from("classDiagram\n");
 
-    // Group classes by namespace
-    let mut namespace_map: std::collections::HashMap<String, Vec<&diagram::Class>> =
-        std::collections::HashMap::new();
     for class in &uml_diagram.classes {
-        namespace_map
-            .entry(class.namespace.clone())
-            .or_default()
-            .push(class);
-    }
+        output.push_str(&format!("{}class {} {{\n", INDENT, class.display_name()));
 
-    for (namespace, classes) in namespace_map {
-        let has_namespace = !namespace.is_empty();
-        if has_namespace {
-            output.push_str(&format!("namespace {} {{\n", namespace));
-        }
+        // Add variables
+        for var in &class.variables {
+            output.push_str(&format!("{}{}{}\n", INDENT, INDENT, var));
 
-        for class in classes {
-            output.push_str(&format!("{}class {} {{\n", INDENT, class.name));
-
-            // Add variables
-            for var in &class.variables {
-                output.push_str(&format!("{}{}{}\n", INDENT, INDENT, var));
-
-                // add edge if main type matches a qualified class name
-                if let Some(destination) =
-                    uml_diagram.classes.iter().find(|c| c.name == var.var_type)
-                {
-                    let new_edge = Edge {
-                        source: class.name.clone(),
-                        destination: destination.name.clone(),
-                        edge_type: Relation::Association,
-                    };
-                    edges.push(new_edge);
-                }
-                // add edges for inner types
-                if let Some(inner_types) = &var.inner_types {
-                    for inner in inner_types {
-                        if let Some(destination) =
-                            uml_diagram.classes.iter().find(|c| c.name == *inner)
-                        {
-                            let new_edge = Edge {
-                                source: class.name.clone(),
-                                destination: destination.name.clone(),
-                                edge_type: Relation::Association,
-                            };
-                            edges.push(new_edge);
-                        }
+            // add edge if main type matches a qualified class name (skip self-refs for generic classes)
+            if let Some(destination) = uml_diagram.classes.iter().find(|c| {
+                c.name == var.var_type
+                    && !(c.name == class.name && !class.type_params.is_empty())
+            }) {
+                let new_edge = Edge {
+                    source: class.name.clone(),
+                    destination: destination.name.clone(),
+                    edge_type: Relation::Association,
+                };
+                edges.push(new_edge);
+            }
+            // add edges for inner types
+            if let Some(inner_types) = &var.inner_types {
+                for inner in inner_types {
+                    if let Some(destination) =
+                        uml_diagram.classes.iter().find(|c| c.name == *inner)
+                    {
+                        let new_edge = Edge {
+                            source: class.name.clone(),
+                            destination: destination.name.clone(),
+                            edge_type: Relation::Association,
+                        };
+                        edges.push(new_edge);
                     }
                 }
             }
+        }
 
-            // Add functions
-            for func in &class.functions {
-                output.push_str(&format!("{}{}+{}\n", INDENT, INDENT, func));
+        // Add functions
+        for func in &class.functions {
+            output.push_str(&format!("{}{}+{}\n", INDENT, INDENT, func));
 
-                // add edge if main return type matches a qualified class name
-                if let Some(destination) = uml_diagram
-                    .classes
-                    .iter()
-                    .find(|c| c.name == func.return_type.var_type)
-                {
-                    let new_edge = Edge {
-                        source: class.name.clone(),
-                        destination: destination.name.clone(),
-                        edge_type: Relation::Dependency,
-                    };
-                    edges.push(new_edge);
-                }
-                // add edges for inner return types
-                if let Some(inner_types) = &func.return_type.inner_types {
-                    for inner in inner_types {
-                        if let Some(destination) =
-                            uml_diagram.classes.iter().find(|c| c.name == *inner)
-                        {
-                            let new_edge = Edge {
-                                source: class.name.clone(),
-                                destination: destination.name.clone(),
-                                edge_type: Relation::Dependency,
-                            };
-                            edges.push(new_edge);
-                        }
+            // add edge if main return type matches a qualified class name (skip self-refs for generic classes)
+            if let Some(destination) = uml_diagram.classes.iter().find(|c| {
+                c.name == func.return_type.var_type
+                    && !(c.name == class.name && !class.type_params.is_empty())
+            }) {
+                let new_edge = Edge {
+                    source: class.name.clone(),
+                    destination: destination.name.clone(),
+                    edge_type: Relation::Dependency,
+                };
+                edges.push(new_edge);
+            }
+            // add edges for inner return types
+            if let Some(inner_types) = &func.return_type.inner_types {
+                for inner in inner_types {
+                    if let Some(destination) =
+                        uml_diagram.classes.iter().find(|c| c.name == *inner)
+                    {
+                        let new_edge = Edge {
+                            source: class.name.clone(),
+                            destination: destination.name.clone(),
+                            edge_type: Relation::Dependency,
+                        };
+                        edges.push(new_edge);
                     }
                 }
             }
-
-            output.push_str(&format!("{}}}\n", INDENT));
         }
 
-        if has_namespace {
-            output.push_str("}\n");
-        }
+        output.push_str(&format!("{}}}\n", INDENT));
     }
 
     // add edges to end of output
@@ -177,7 +156,7 @@ mod tests {
         assert!(output.contains("classDiagram"));
         assert!(output.contains("class User {"));
         assert!(output.contains("+id: u64"));
-        assert!(output.contains("+login(token:String) bool"));
+        assert!(output.contains("+login(token: String) bool"));
     }
 
     #[test]
