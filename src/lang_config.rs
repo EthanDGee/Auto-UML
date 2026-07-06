@@ -28,6 +28,8 @@ pub struct LangConfig {
     pub type_path_separator: String,
     #[serde(default)]
     pub self_parameter_patterns: Vec<String>,
+    #[serde(default)]
+    pub type_annotation_strip_prefix: String,
 }
 
 impl LangConfig {

@@ -320,9 +320,18 @@ impl<'a> Diagram<'a> {
                 .iter()
                 .any(|p| kind == p || (p == "type" && kind.contains("type")))
             {
-                let full_type =
+                let raw_text =
                     String::from_utf8_lossy(&source[child.start_byte()..child.end_byte()])
                         .to_string();
+                let full_type = if !self.lang.type_annotation_strip_prefix.is_empty()
+                    && raw_text.starts_with(self.lang.type_annotation_strip_prefix.as_str())
+                {
+                    raw_text[self.lang.type_annotation_strip_prefix.len()..]
+                        .trim()
+                        .to_string()
+                } else {
+                    raw_text
+                };
 
                 // Naive parsing of generics: "Vec<User>" -> ["Vec", "User"]
                 if let Some(pos) = full_type.find('<') {
