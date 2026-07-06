@@ -17,32 +17,12 @@ struct LangTestConfig {
     files: HashMap<String, String>,
 }
 
-fn load_test_configs() -> Vec<LangTestConfig> {
-    let mut configs = Vec::new();
-    let langs = [
-        "rust",
-        "java",
-        "javascript",
-        "csharp",
-        "cpp",
-        "typescript",
-        "objc",
-        "dart",
-        "kotlin",
-    ];
-
-    for lang in langs {
-        let config_path = format!("languages/{}/test.yaml", lang);
-        if let Ok(content) = fs::read_to_string(&config_path) {
-            match serde_yml::from_str::<LangTestConfig>(&content) {
-                Ok(config) => configs.push(config),
-                Err(e) => eprintln!("Error parsing test config for {}: {}", lang, e),
-            }
-        } else {
-            eprintln!("Warning: Could not find test config at {}", config_path);
-        }
-    }
-    configs
+fn load_single_lang_config(lang_dir: &str) -> LangTestConfig {
+    let config_path = format!("languages/{}/test.yaml", lang_dir);
+    let content = fs::read_to_string(&config_path)
+        .unwrap_or_else(|_| panic!("Could not find test config at {}", config_path));
+    serde_yml::from_str::<LangTestConfig>(&content)
+        .unwrap_or_else(|e| panic!("Error parsing test config for {}: {}", lang_dir, e))
 }
 
 fn setup_parser(lang: &str) -> Parser {
@@ -154,6 +134,102 @@ fn run_test(
     validator(&diagram, config);
 }
 
+macro_rules! lang_tests {
+    ($mod_name:ident, $lang_dir:literal) => {
+        mod $mod_name {
+            fn config() -> super::LangTestConfig {
+                super::load_single_lang_config($lang_dir)
+            }
+
+            #[test]
+            fn simple_struct() {
+                let cfg = config();
+                super::run_test(&cfg, "simple_struct", |diagram, c| {
+                    let class = diagram
+                        .classes
+                        .iter()
+                        .find(|cl| cl.name == "User")
+                        .expect("Class 'User' not found");
+                    assert_eq!(
+                        class.variables.len(),
+                        3,
+                        "Variable count mismatch for {}",
+                        c.name
+                    );
+                    let output = super::generate(diagram);
+                    assert!(output.contains("classDiagram"));
+                    assert!(output.contains("User"));
+                });
+            }
+
+            #[test]
+            fn impl_block() {
+                let cfg = config();
+                super::run_test(&cfg, "impl_block", |diagram, c| {
+                    let class = diagram
+                        .classes
+                        .iter()
+                        .find(|cl| cl.name == "Calculator")
+                        .expect("Class 'Calculator' not found");
+                    assert!(
+                        class.functions.len() >= 2,
+                        "Function count low for {}",
+                        c.name
+                    );
+                    assert!(class.functions.iter().any(|f| f.name == "add"));
+                });
+            }
+
+            #[test]
+            fn complex_types() {
+                let cfg = config();
+                super::run_test(&cfg, "complex_types", |diagram, _c| {
+                    let class = diagram
+                        .classes
+                        .iter()
+                        .find(|cl| cl.name == "ComplexData")
+                        .expect("Class 'ComplexData' not found");
+                    assert!(
+                        class
+                            .variables
+                            .iter()
+                            .any(|v| v.name.as_deref() == Some("raw_bytes"))
+                    );
+                    assert!(class.functions.iter().any(|f| f.name == "process"));
+                });
+            }
+
+            #[test]
+            fn generics() {
+                let cfg = config();
+                super::run_test(&cfg, "generics", |diagram, _c| {
+                    let class = diagram
+                        .classes
+                        .iter()
+                        .find(|cl| cl.name.contains("Box"))
+                        .expect("Generic class 'Box' not found");
+                    assert!(
+                        class
+                            .variables
+                            .iter()
+                            .any(|v| v.name.as_deref() == Some("inner"))
+                    );
+                });
+            }
+        }
+    };
+}
+
+lang_tests!(rust, "rust");
+lang_tests!(java, "java");
+lang_tests!(javascript, "javascript");
+lang_tests!(csharp, "csharp");
+lang_tests!(cpp, "cpp");
+lang_tests!(typescript, "typescript");
+lang_tests!(objc, "objc");
+lang_tests!(dart, "dart");
+lang_tests!(kotlin, "kotlin");
+
 #[test]
 fn test_stitcher_integration() {
     let mut root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
@@ -198,100 +274,4 @@ fn test_stitcher_integration() {
     // Verify edge generation in Mermaid
     let output = generate(diagram);
     assert!(output.contains("App --> models_Post"));
-}
-
-#[test]
-fn test_all_simple_structs() {
-    let configs = load_test_configs();
-    for config in configs {
-        run_test(&config, "simple_struct", |diagram, cfg| {
-            let class = diagram
-                .classes
-                .iter()
-                .find(|c| c.name == "User")
-                .expect("Class 'User' not found");
-            assert_eq!(
-                class.variables.len(),
-                3,
-                "Variable count mismatch for {}",
-                cfg.name
-            );
-        });
-    }
-}
-
-#[test]
-fn test_all_impl_blocks() {
-    let configs = load_test_configs();
-    for config in configs {
-        run_test(&config, "impl_block", |diagram, cfg| {
-            let class = diagram
-                .classes
-                .iter()
-                .find(|c| c.name == "Calculator")
-                .expect("Class 'Calculator' not found");
-            assert!(
-                class.functions.len() >= 2,
-                "Function count low for {}",
-                cfg.name
-            );
-            assert!(class.functions.iter().any(|f| f.name == "add"));
-        });
-    }
-}
-
-#[test]
-fn test_all_complex_types() {
-    let configs = load_test_configs();
-    for config in configs {
-        run_test(&config, "complex_types", |diagram, _cfg| {
-            let class = diagram
-                .classes
-                .iter()
-                .find(|c| c.name == "ComplexData")
-                .expect("Class 'ComplexData' not found");
-            assert!(
-                class
-                    .variables
-                    .iter()
-                    .any(|v| v.name.as_deref() == Some("raw_bytes"))
-            );
-            assert!(class.functions.iter().any(|f| f.name == "process"));
-        });
-    }
-}
-
-#[test]
-fn test_all_generics() {
-    let configs = load_test_configs();
-    for config in configs {
-        run_test(&config, "generics", |diagram, _cfg| {
-            let class = diagram
-                .classes
-                .iter()
-                .find(|c| c.name.contains("Box"))
-                .expect("Generic class 'Box' not found");
-            assert!(
-                class
-                    .variables
-                    .iter()
-                    .any(|v| v.name.as_deref() == Some("inner"))
-            );
-        });
-    }
-}
-
-#[test]
-fn test_mermaid_smoke() {
-    let configs = load_test_configs();
-    let rust_config = configs
-        .iter()
-        .find(|c| c.name == "rust")
-        .expect("Rust config not found");
-    // Just verify it doesn't crash and produces basic output for the first language
-    run_test(rust_config, "simple_struct", |diagram, _| {
-        let output = generate(diagram);
-        assert!(output.contains("classDiagram"));
-        assert!(output.contains("User"));
-    });
 }
