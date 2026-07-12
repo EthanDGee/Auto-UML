@@ -13,6 +13,18 @@ enum Relation {
     Realization,
 }
 
+fn relation_to_str(relation: Relation) -> &'static str {
+    match relation {
+        Relation::Inheritance => "<|--",
+        Relation::Composition => "*--",
+        Relation::Aggregation => "o--",
+        Relation::Association => "-->",
+        Relation::Link => "--",
+        Relation::Dependency => "..>",
+        Relation::Realization => "<|..",
+    }
+}
+
 struct Edge {
     source: String,
     destination: String,
@@ -32,8 +44,7 @@ pub fn generate(uml_diagram: &diagram::Diagram) -> String {
 
             // add edge if main type matches a qualified class name (skip self-refs for generic classes)
             if let Some(destination) = uml_diagram.classes.iter().find(|c| {
-                c.name == var.var_type
-                    && !(c.name == class.name && !class.type_params.is_empty())
+                c.name == var.var_type && !(c.name == class.name && !class.type_params.is_empty())
             }) {
                 let new_edge = Edge {
                     source: class.name.clone(),
@@ -45,8 +56,7 @@ pub fn generate(uml_diagram: &diagram::Diagram) -> String {
             // add edges for inner types
             if let Some(inner_types) = &var.inner_types {
                 for inner in inner_types {
-                    if let Some(destination) =
-                        uml_diagram.classes.iter().find(|c| c.name == *inner)
+                    if let Some(destination) = uml_diagram.classes.iter().find(|c| c.name == *inner)
                     {
                         let new_edge = Edge {
                             source: class.name.clone(),
@@ -78,8 +88,7 @@ pub fn generate(uml_diagram: &diagram::Diagram) -> String {
             // add edges for inner return types
             if let Some(inner_types) = &func.return_type.inner_types {
                 for inner in inner_types {
-                    if let Some(destination) =
-                        uml_diagram.classes.iter().find(|c| c.name == *inner)
+                    if let Some(destination) = uml_diagram.classes.iter().find(|c| c.name == *inner)
                     {
                         let new_edge = Edge {
                             source: class.name.clone(),
@@ -97,15 +106,7 @@ pub fn generate(uml_diagram: &diagram::Diagram) -> String {
 
     // add edges to end of output
     for edge in edges {
-        let arrow = match edge.edge_type {
-            Relation::Inheritance => "<|--",
-            Relation::Composition => "*--",
-            Relation::Aggregation => "o--",
-            Relation::Association => "-->",
-            Relation::Link => "--",
-            Relation::Dependency => "..>",
-            Relation::Realization => "<|..",
-        };
+        let arrow = relation_to_str(edge.edge_type);
         output.push_str(&format!(
             "{}{} {} {}\n",
             INDENT, edge.source, arrow, edge.destination
