@@ -45,6 +45,7 @@ fn escape_label(s: &str) -> String {
 }
 
 pub fn generate(uml_diagram: &diagram::Diagram) -> String {
+    let lang = uml_diagram.lang();
     let mut edges: Vec<Edge> = Vec::new();
     let mut output = String::from("digraph G {\n");
     output.push_str("    fontname=\"Helvetica,Arial,sans-serif\"\n");
@@ -83,7 +84,7 @@ pub fn generate(uml_diagram: &diagram::Diagram) -> String {
             if !class.variables.is_empty() || !class.functions.is_empty() {
                 let mut vars_str = String::new();
                 for var in &class.variables {
-                    vars_str.push_str(&format!("{}\\l", escape_label(&var.to_string())));
+                    vars_str.push_str(&format!("{}\\l", escape_label(&var.render(lang))));
                 }
                 label_parts.push(vars_str);
             }
@@ -92,7 +93,7 @@ pub fn generate(uml_diagram: &diagram::Diagram) -> String {
             if !class.functions.is_empty() {
                 let mut funcs_str = String::new();
                 for func in &class.functions {
-                    funcs_str.push_str(&format!("+{}\\l", escape_label(&func.to_string())));
+                    funcs_str.push_str(&format!("+{}\\l", escape_label(&func.render(lang))));
                 }
                 label_parts.push(funcs_str);
             }

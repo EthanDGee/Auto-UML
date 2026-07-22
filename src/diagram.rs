@@ -1,5 +1,4 @@
 use crate::lang_config::LangConfig;
-use std::fmt;
 use tree_sitter::Node;
 
 const EMPTY_RETURN_TYPE: &str = "void";
@@ -46,14 +45,21 @@ impl Variable {
             None => self.display_type(),
         }
     }
-}
 
-impl fmt::Display for Variable {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    /// Render this variable as a class-diagram field, e.g. `+id: u64`.
+    ///
+    /// `lang.loosely_typed` languages (no real type annotations, e.g. JavaScript) never have a
+    /// meaningful type to show, so `var_type` is just the `void` placeholder assigned by
+    /// `extract_type` when nothing was found — suppress it rather than printing `+id: void`.
+    pub fn render(&self, lang: &LangConfig) -> String {
         let visibility = if self.private { "-" } else { "+" };
+        let loosely_typed = lang.loosely_typed.unwrap_or(false);
         match &self.name {
-            Some(name) => write!(f, "{}{}: {}", visibility, name, self.display_type()),
-            None => write!(f, "{}{}", visibility, self.display_type()),
+            Some(name) if loosely_typed && self.var_type == EMPTY_RETURN_TYPE => {
+                format!("{}{}", visibility, name)
+            }
+            Some(name) => format!("{}{}: {}", visibility, name, self.display_type()),
+            None => format!("{}{}", visibility, self.display_type()),
         }
     }
 }
@@ -78,20 +84,23 @@ impl Function {
     pub fn add_argument(&mut self, arg: Variable) {
         self.arguments.push(arg);
     }
-}
 
-impl fmt::Display for Function {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    /// Render this function as a class-diagram member, e.g. `login(token: String) bool`.
+    ///
+    /// See [`Variable::render`] for why `lang.loosely_typed` suppresses the trailing return
+    /// type when it's just the unset `void` placeholder.
+    pub fn render(&self, lang: &LangConfig) -> String {
         let args: Vec<String> = self
             .arguments
             .iter()
             .map(|arg| arg.hidden_access_to_string())
             .collect();
-        if self.is_constructor {
-            write!(f, "{}({})", self.name, args.join(", "))
+        let loosely_typed = lang.loosely_typed.unwrap_or(false);
+        if self.is_constructor || (loosely_typed && self.return_type.var_type == EMPTY_RETURN_TYPE)
+        {
+            format!("{}({})", self.name, args.join(", "))
         } else {
-            write!(
-                f,
+            format!(
                 "{}({}) {}",
                 self.name,
                 args.join(", "),
@@ -352,6 +361,14 @@ impl<'a> Diagram<'a> {
 
     /// Helper to find identifiers (names) which may have different kind names across grammars.
     fn extract_identifier(&self, node: Node, source: &[u8]) -> String {
+        // Some grammars (e.g. JS's `formal_parameters`) use a bare identifier token as the
+        // parameter node itself rather than wrapping it in a `parameter`/`required_parameter`
+        // node — it has no children to walk, so handle that leaf case directly.
+        if node.child_count() == 0 && any_match(&self.lang.identifier_patterns, node.kind()) {
+            return String::from_utf8_lossy(&source[node.start_byte()..node.end_byte()])
+                .to_string();
+        }
+
         let mut cursor = node.walk();
         let mut best_guess = String::new();
 

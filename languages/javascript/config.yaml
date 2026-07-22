@@ -29,3 +29,4 @@ public_modifier_patterns:
   - public
 private_modifier_patterns:
   - private
+loosely_typed: true

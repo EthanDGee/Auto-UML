@@ -52,7 +52,7 @@ pub fn generate(uml_diagram: &diagram::Diagram) -> String {
 
         // Add variables
         for var in &class.variables {
-            output.push_str(&format!("{}{}{}\n", INDENT, INDENT, var));
+            output.push_str(&format!("{}{}{}\n", INDENT, INDENT, var.render(lang)));
 
             // add edge if main type matches a qualified class name (skip self-refs for generic classes)
             if let Some(destination) = uml_diagram.classes.iter().find(|c| {
@@ -98,7 +98,7 @@ pub fn generate(uml_diagram: &diagram::Diagram) -> String {
 
         // Add functions
         for func in &class.functions {
-            output.push_str(&format!("{}{}+{}\n", INDENT, INDENT, func));
+            output.push_str(&format!("{}{}+{}\n", INDENT, INDENT, func.render(lang)));
 
             // add edge if main return type matches a qualified class name (skip self-refs for generic classes)
             if let Some(destination) = uml_diagram.classes.iter().find(|c| {

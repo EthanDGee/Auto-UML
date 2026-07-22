@@ -49,6 +49,11 @@ pub struct LangConfig {
     /// Well-known standard-library/builtin type names (e.g. `String`, `Object`) that should never
     /// be treated as a user-defined class reference, even though they're capitalized.
     pub builtin_type_names: Option<Vec<String>>,
+    /// Language has no real type annotations (e.g. JavaScript). `extract_type` falls back to a
+    /// `void` placeholder when it finds nothing, which is correct for statically-typed languages
+    /// with an actual void return, but meaningless here — writers suppress it instead of
+    /// printing `+id: void` / `add() void`. See `Variable::render` / `Function::render`.
+    pub loosely_typed: Option<bool>,
 }
 
 impl LangConfig {
