@@ -53,7 +53,7 @@ import_patterns:
 visibility_modifier_patterns:
   - visibility_specifier
 private_by_default: false
-public_modifier_patterns: 
+public_modifier_patterns:
   - public
   - "@public"
 private_modifier_patterns:

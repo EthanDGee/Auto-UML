@@ -51,7 +51,7 @@ import_patterns:
 namespace_patterns:
   - library_directive
 private_by_default: false
-public_modifier_patterns: 
+public_modifier_patterns:
   - public
 private_modifier_patterns:
   - private

@@ -25,7 +25,7 @@ import_patterns:
 visibility_modifier_patterns:
   - accessibility_modifier
 private_by_default: false
-public_modifier_patterns: 
+public_modifier_patterns:
   - public
 private_modifier_patterns:
   - private
