@@ -50,7 +50,6 @@ skip_patterns:
 import_patterns:
   - preproc_import
   - preproc_include
-namespace_patterns: []
 visibility_modifier_patterns:
   - visibility_specifier
 private_by_default: false

@@ -48,7 +48,6 @@ visibility_modifier_patterns:
 private_by_default: true
 public_modifier_patterns:
   - pub
-private_modifier_patterns: []
 class_type_parameter_patterns:
   - type_parameters
 type_path_separator: "::"

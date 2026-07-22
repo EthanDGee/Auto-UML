@@ -53,7 +53,11 @@ fn detect_language(path: &std::path::Path) -> Option<String> {
 
         // Check each embedded language config
         for (lang_name, config) in crate::lang_config::LangConfig::all_configs() {
-            if config.file_extensions.iter().any(|e| e == &ext) {
+            if config
+                .file_extensions
+                .as_ref()
+                .is_some_and(|v| v.iter().any(|e| e == &ext))
+            {
                 return Some(lang_name);
             }
         }
