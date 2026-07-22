@@ -32,6 +32,18 @@ pub struct LangConfig {
     pub type_path_separator: Option<String>,
     pub self_parameter_patterns: Option<Vec<String>>,
     pub type_annotation_strip_prefix: Option<String>,
+    /// Node kinds that are constructors: suppress their return-type display (no trailing `void`).
+    pub constructor_patterns: Option<Vec<String>>,
+    /// Drop association/dependency edges where the source and destination class are the same.
+    pub suppress_self_relations: Option<bool>,
+    /// Draw an association edge to a field's type even when that class isn't defined in the
+    /// parsed diagram (e.g. an external/imported type). Skipped for generic containers (types
+    /// with inner type params), lowercase-leading primitive keywords, and names listed in
+    /// `builtin_type_names`.
+    pub infer_unresolved_type_relations: Option<bool>,
+    /// Well-known standard-library/builtin type names (e.g. `String`, `Object`) that should never
+    /// be treated as a user-defined class reference, even though they're capitalized.
+    pub builtin_type_names: Option<Vec<String>>,
 }
 
 impl LangConfig {

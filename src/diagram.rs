@@ -62,6 +62,7 @@ pub struct Function {
     pub name: String,
     pub arguments: Vec<Variable>,
     pub return_type: Variable,
+    pub is_constructor: bool,
 }
 
 impl Function {
@@ -70,6 +71,7 @@ impl Function {
             name,
             arguments: Vec::new(),
             return_type,
+            is_constructor: false,
         }
     }
 
@@ -85,13 +87,17 @@ impl fmt::Display for Function {
             .iter()
             .map(|arg| arg.hidden_access_to_string())
             .collect();
-        write!(
-            f,
-            "{}({}) {}",
-            self.name,
-            args.join(", "),
-            self.return_type.display_type()
-        )
+        if self.is_constructor {
+            write!(f, "{}({})", self.name, args.join(", "))
+        } else {
+            write!(
+                f,
+                "{}({}) {}",
+                self.name,
+                args.join(", "),
+                self.return_type.display_type()
+            )
+        }
     }
 }
 pub struct Class {
@@ -172,6 +178,10 @@ impl<'a> Diagram<'a> {
         }
     }
 
+    pub fn lang(&self) -> &LangConfig {
+        self.lang
+    }
+
     pub fn build(&mut self, source: &[u8], parser: &mut tree_sitter::Parser) {
         let tree = parser.parse(source, None).unwrap();
         self.navigate_node(tree.root_node(), source, None, "");
@@ -193,12 +203,11 @@ impl<'a> Diagram<'a> {
         let mut next_class_index = class_index;
         let mut active_namespace = current_namespace.to_string();
 
-        if self.try_import(node, source) {
-        } else if self.try_namespace(node, source, &mut active_namespace) {
-        } else if self.try_class(node, source, &active_namespace, &mut next_class_index) {
-        } else if self.try_function(node, source, next_class_index) {
-        } else if self.try_variable(node, source, next_class_index) {
-        }
+        let _ = self.try_import(node, source)
+            || self.try_namespace(node, source, &mut active_namespace)
+            || self.try_class(node, source, &active_namespace, &mut next_class_index)
+            || self.try_function(node, source, next_class_index)
+            || self.try_variable(node, source, next_class_index);
 
         // Recursively travel all children nodes (break case is handled by empty for loop)
         let mut cursor = node.walk();
@@ -299,6 +308,7 @@ impl<'a> Diagram<'a> {
                 }
             };
             let mut func = Function::new(name, return_type);
+            func.is_constructor = any_match(&lang.constructor_patterns, node.kind());
             self.extract_parameters(node, source, &mut func);
 
             if let Some(idx) = next_class_index {

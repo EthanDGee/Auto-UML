@@ -171,7 +171,7 @@ pub fn generate(uml_diagram: &diagram::Diagram) -> String {
         }
     }
 
-    output.push_str("\n");
+    output.push('\n');
 
     // add edges to end of output
     for edge in edges {
