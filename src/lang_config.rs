@@ -29,6 +29,11 @@ pub struct LangConfig {
     pub public_modifier_patterns: Option<Vec<String>>,
     pub private_modifier_patterns: Option<Vec<String>>,
     pub class_type_parameter_patterns: Option<Vec<String>>,
+    /// Field names (per the grammar's own field-name convention, e.g. tree-sitter's
+    /// `field_name_for_child`) that mark a child as a type reference rather than a declared
+    /// name. Skipped during identifier extraction — needed for grammars (e.g. C#) that reuse
+    /// the same node kind (`identifier`) for both a type reference and a declared name.
+    pub type_field_names: Option<Vec<String>>,
     pub type_path_separator: Option<String>,
     pub self_parameter_patterns: Option<Vec<String>>,
     pub type_annotation_strip_prefix: Option<String>,

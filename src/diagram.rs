@@ -355,10 +355,15 @@ impl<'a> Diagram<'a> {
         let mut cursor = node.walk();
         let mut best_guess = String::new();
 
-        for child in node.children(&mut cursor) {
+        for (idx, child) in node.children(&mut cursor).enumerate() {
             let kind = child.kind();
 
             if any_match(&self.lang.skip_patterns, kind) {
+                continue;
+            }
+            if let Some(field_name) = node.field_name_for_child(idx as u32)
+                && any_match(&self.lang.type_field_names, field_name)
+            {
                 continue;
             }
             if any_match(&self.lang.identifier_patterns, kind) {
