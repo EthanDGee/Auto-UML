@@ -26,10 +26,8 @@ parameter_patterns:
 wrapper_patterns:
   - lexical_declaration
   - variable_declaration
-skip_patterns: []
 import_patterns:
   - import_statement
-namespace_patterns: []
 visibility_modifier_patterns:
   - accessibility_modifier
 private_by_default: false

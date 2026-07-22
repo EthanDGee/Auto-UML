@@ -207,8 +207,8 @@ impl<'a> Stitcher<'a> {
         let extension = path.extension().and_then(|s| s.to_str()).unwrap_or("");
         self.config
             .file_extensions
-            .iter()
-            .any(|ext| ext == extension)
+            .as_ref()
+            .is_some_and(|v| v.iter().any(|ext| ext == extension))
     }
 
     fn process_file(&mut self, path: &Path) -> Option<File<'a>> {

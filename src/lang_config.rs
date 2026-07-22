@@ -4,32 +4,34 @@ use std::path::Path;
 
 static LANG_DIR: Dir<'_> = include_dir!("$STAGED_LANGS_DIR");
 
+/// Per-language analyzer configuration.
+///
+/// Every field is optional: a missing key in `config.yaml` deserializes to `None` (serde
+/// special-cases `Option<T>`). The analyzer treats `None` and an empty value identically — it
+/// simply skips the corresponding operation. So a config only needs to declare the capabilities
+/// the language actually uses.
 #[derive(Clone, Deserialize, Debug, Default)]
 pub struct LangConfig {
-    pub file_extensions: Vec<String>,
-    pub class_patterns: Vec<String>,
-    pub function_patterns: Vec<String>,
-    pub variable_patterns: Vec<String>,
-    pub identifier_patterns: Vec<String>,
-    pub type_patterns: Vec<String>,
-    pub parameter_container_patterns: Vec<String>,
-    pub parameter_patterns: Vec<String>,
-    pub wrapper_patterns: Vec<String>,
-    pub skip_patterns: Vec<String>,
-    pub import_patterns: Vec<String>,
-    pub namespace_patterns: Vec<String>,
-    pub visibility_modifier_patterns: Vec<String>,
-    pub private_by_default: bool,
-    pub public_modifier_patterns: Vec<String>,
-    pub private_modifier_patterns: Vec<String>,
-    #[serde(default)]
-    pub class_type_parameter_patterns: Vec<String>,
-    #[serde(default)]
-    pub type_path_separator: String,
-    #[serde(default)]
-    pub self_parameter_patterns: Vec<String>,
-    #[serde(default)]
-    pub type_annotation_strip_prefix: String,
+    pub file_extensions: Option<Vec<String>>,
+    pub class_patterns: Option<Vec<String>>,
+    pub function_patterns: Option<Vec<String>>,
+    pub variable_patterns: Option<Vec<String>>,
+    pub identifier_patterns: Option<Vec<String>>,
+    pub type_patterns: Option<Vec<String>>,
+    pub parameter_container_patterns: Option<Vec<String>>,
+    pub parameter_patterns: Option<Vec<String>>,
+    pub wrapper_patterns: Option<Vec<String>>,
+    pub skip_patterns: Option<Vec<String>>,
+    pub import_patterns: Option<Vec<String>>,
+    pub namespace_patterns: Option<Vec<String>>,
+    pub visibility_modifier_patterns: Option<Vec<String>>,
+    pub private_by_default: Option<bool>,
+    pub public_modifier_patterns: Option<Vec<String>>,
+    pub private_modifier_patterns: Option<Vec<String>>,
+    pub class_type_parameter_patterns: Option<Vec<String>>,
+    pub type_path_separator: Option<String>,
+    pub self_parameter_patterns: Option<Vec<String>>,
+    pub type_annotation_strip_prefix: Option<String>,
 }
 
 impl LangConfig {
