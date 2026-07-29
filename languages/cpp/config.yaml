@@ -20,6 +20,11 @@ identifier_patterns:
 type_patterns:
   - primitive_type
   - type_identifier
+  - sized_type_specifier
+  - qualified_identifier
+type_path_separator: "::"
+class_type_parameter_patterns:
+  - template_parameter_list
 parameter_container_patterns:
   - parameter_list
 parameter_patterns:

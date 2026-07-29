@@ -487,18 +487,29 @@ impl<'a> Diagram<'a> {
         {
             return Vec::new();
         }
-        let mut cursor = node.walk();
-        for child in node.children(&mut cursor) {
-            if any_match(&self.lang.class_type_parameter_patterns, child.kind()) {
-                let text = String::from_utf8_lossy(&source[child.start_byte()..child.end_byte()])
-                    .to_string();
-                // strip surrounding < > and split by comma
-                let inner = text.trim_start_matches('<').trim_end_matches('>');
-                return inner
-                    .split(',')
-                    .map(|s| s.trim().to_string())
-                    .filter(|s| !s.is_empty())
-                    .collect();
+        // Usually the type parameter list is a direct child of the class node (Rust, Java, C#,
+        // TypeScript). C++'s `template<typename T> class Box` instead attaches it to the
+        // `template_declaration` node wrapping the class, so fall back to the parent.
+        for candidate in [Some(node), node.parent()].into_iter().flatten() {
+            let mut cursor = candidate.walk();
+            for child in candidate.children(&mut cursor) {
+                if any_match(&self.lang.class_type_parameter_patterns, child.kind()) {
+                    let text =
+                        String::from_utf8_lossy(&source[child.start_byte()..child.end_byte()])
+                            .to_string();
+                    // strip surrounding < > and split by comma
+                    let inner = text.trim_start_matches('<').trim_end_matches('>');
+                    let params: Vec<String> = inner
+                        .split(',')
+                        // Drops a leading declaration keyword some grammars use per parameter,
+                        // e.g. C++'s `typename`/`class` in `template<typename T>`.
+                        .filter_map(|s| s.split_whitespace().next_back())
+                        .map(str::to_string)
+                        .collect();
+                    if !params.is_empty() {
+                        return params;
+                    }
+                }
             }
         }
         Vec::new()
@@ -583,6 +594,10 @@ impl<'a> Diagram<'a> {
                         }
                     }
                 }
+            } else if any_match(&self.lang.wrapper_patterns, child.kind()) {
+                // Some grammars (e.g. C++'s `function_declarator`) nest the parameter list
+                // inside a wrapper node rather than exposing it as a direct child.
+                self.extract_parameters(child, source, func);
             }
         }
     }

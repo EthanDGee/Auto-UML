@@ -73,13 +73,3 @@ language = "system"
 types = ["rust"]
 pass_filenames = false
 stages = ["pre-push"]
-
-[[repos.hooks]]
-id = "cargo-sort"
-name = "cargo sort"
-entry = "cargo sort -w -c"
-language = "system"
-types = ["toml"]
-files = "Cargo\\.toml$"
-pass_filenames = false
-
