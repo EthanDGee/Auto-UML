@@ -139,7 +139,7 @@ classDiagram
 
 Auto-UML is designed from the ground up to be extremely fast. Since it works with a per-file LR representation that is merged recursively it can also work on extremely large code bases. Most code bases can be done in milliseconds with the larger ones taking seconds. Making it a great addition to your CI/CD pipeline or for personal use.
 
-> **Disclaimer**: All benchmarks were performed on the latest main branch as of June 22, 2026.
+> **Disclaimer**: All benchmarks were performed on the latest main branch as of August 5, 2026.
 
 ### Test code bases
 
@@ -169,13 +169,13 @@ All of the following tests were done using hyperfine with 100 runs.
 
 | Codebase                                                      | Language      | Mean runtime | Standard Deviation | Min       | Max       |
 | ------------------------------------------------------------ | ------------- | ------------ | ------------------ | --------- | --------- |
-| [This Codebase](https://github.com/anomalyco/auto-UML)      | Rust          | 12.4 ms      | 2.3 ms             | 7.9 ms    | 20.1 ms   |
-| [Chart.js](https://github.com/chartjs/Chart.js)             | JavaScript    | 211.3 ms     | 12.6 ms            | 190.8 ms  | 258.9 ms  |
-| [CoreUtils](https://github.com/uutils/coreutils.git)         | Rust          | 999.0 ms     | 36.0 ms            | 892.3 ms  | 1184.1 ms |
-| [BuildCLI](https://github.com/BuildCLI/BuildCLI)            | Java          | 75.1 ms      | 2.5 ms             | 70.6 ms   | 83.0 ms   |
-| [faker-cxx](https://github.com/cieslarmichal/faker-cxx)     | C++           | 556.7 ms     | 27.6 ms            | 511.5 ms  | 700.8 ms  |
-| [authpass](https://github.com/authpass/authpass.git)         | Dart          | 282.3 ms     | 3.4 ms             | 277.5 ms  | 297.9 ms  |
-| [jupyterlab](https://github.com/jupyterlab/jupyterlab)       | TypeScript    | 1.197 s      | 0.049 s            | 1.120 s   | 1.417 s   |
-| [bitwarden-server](https://github.com/bitwarden/server)     | C#            | 10.924 s     | 0.729 s            | 10.000 s  | 14.733 s  |
-| [Platypus](https://github.com/sveinbjornt/Platypus)         | Objective-C   | 110.5 ms     | 2.7 ms             | 105.5 ms  | 120.4 ms  |
-| [ktlint](https://github.com/pinterest/ktlint)                 | Kotlin        | 371.1 ms     | 5.1 ms             | 361.5 ms  | 394.6 ms  |
+| [This Codebase](https://github.com/anomalyco/auto-UML)      | Rust          | 14.9 ms      | 1.8 ms             | 12.5 ms   | 21.1 ms   |
+| [Chart.js](https://github.com/chartjs/Chart.js)             | JavaScript    | 259.2 ms     | 24.5 ms            | 249.3 ms  | 413.1 ms  |
+| [CoreUtils](https://github.com/uutils/coreutils.git)         | Rust          | 1.133 s      | 0.057 s            | 1.097 s   | 1.308 s   |
+| [BuildCLI](https://github.com/BuildCLI/BuildCLI)            | Java          | 85.1 ms      | 9.7 ms             | 78.1 ms   | 158.3 ms  |
+| [faker-cxx](https://github.com/cieslarmichal/faker-cxx)     | C++           | 1.012 s      | 0.054 s            | 0.974 s   | 1.211 s   |
+| [authpass](https://github.com/authpass/authpass.git)         | Dart          | 313.3 ms     | 28.3 ms            | 300.5 ms  | 466.0 ms  |
+| [jupyterlab](https://github.com/jupyterlab/jupyterlab)       | TypeScript    | 1.352 s      | 0.061 s            | 1.315 s   | 1.520 s   |
+| [bitwarden-server](https://github.com/bitwarden/server)     | C#            | 18.298 s     | 0.192 s            | 17.999 s  | 18.947 s  |
+| [Platypus](https://github.com/sveinbjornt/Platypus)         | Objective-C   | 291.7 ms     | 23.9 ms            | 283.0 ms  | 433.7 ms  |
+| [ktlint](https://github.com/pinterest/ktlint)                 | Kotlin        | 838.0 ms     | 51.3 ms            | 811.9 ms  | 1132.9 ms |
