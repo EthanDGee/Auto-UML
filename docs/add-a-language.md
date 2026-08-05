@@ -155,7 +155,7 @@ namespace_patterns:
 visibility_modifier_patterns:
   - visibility_modifier
 private_by_default: true
-public_modifier_patterns: 
+public_modifier_patterns:
   - pub
 private_modifier_patterns: []
 ```

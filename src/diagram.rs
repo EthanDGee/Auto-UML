@@ -1,5 +1,4 @@
 use crate::lang_config::LangConfig;
-use std::fmt;
 use tree_sitter::Node;
 
 const EMPTY_RETURN_TYPE: &str = "void";
@@ -39,18 +38,28 @@ impl Variable {
     /// This is primarily used for things like function arguments
     pub fn hidden_access_to_string(&self) -> String {
         match &self.name {
-            Some(name) => format!("{}:{}", name, self.display_type()),
+            Some(name) if self.var_type != EMPTY_RETURN_TYPE => {
+                format!("{}: {}", name, self.display_type())
+            }
+            Some(name) => name.clone(),
             None => self.display_type(),
         }
     }
-}
 
-impl fmt::Display for Variable {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    /// Render this variable as a class-diagram field, e.g. `+id: u64`.
+    ///
+    /// `lang.loosely_typed` languages (no real type annotations, e.g. JavaScript) never have a
+    /// meaningful type to show, so `var_type` is just the `void` placeholder assigned by
+    /// `extract_type` when nothing was found — suppress it rather than printing `+id: void`.
+    pub fn render(&self, lang: &LangConfig) -> String {
         let visibility = if self.private { "-" } else { "+" };
+        let loosely_typed = lang.loosely_typed.unwrap_or(false);
         match &self.name {
-            Some(name) => write!(f, "{}{}: {}", visibility, name, self.display_type()),
-            None => write!(f, "{}{}", visibility, self.display_type()),
+            Some(name) if loosely_typed && self.var_type == EMPTY_RETURN_TYPE => {
+                format!("{}{}", visibility, name)
+            }
+            Some(name) => format!("{}{}: {}", visibility, name, self.display_type()),
+            None => format!("{}{}", visibility, self.display_type()),
         }
     }
 }
@@ -59,6 +68,7 @@ pub struct Function {
     pub name: String,
     pub arguments: Vec<Variable>,
     pub return_type: Variable,
+    pub is_constructor: bool,
 }
 
 impl Function {
@@ -67,33 +77,42 @@ impl Function {
             name,
             arguments: Vec::new(),
             return_type,
+            is_constructor: false,
         }
     }
 
     pub fn add_argument(&mut self, arg: Variable) {
         self.arguments.push(arg);
     }
-}
 
-impl fmt::Display for Function {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    /// Render this function as a class-diagram member, e.g. `login(token: String) bool`.
+    ///
+    /// See [`Variable::render`] for why `lang.loosely_typed` suppresses the trailing return
+    /// type when it's just the unset `void` placeholder.
+    pub fn render(&self, lang: &LangConfig) -> String {
         let args: Vec<String> = self
             .arguments
             .iter()
             .map(|arg| arg.hidden_access_to_string())
             .collect();
-        write!(
-            f,
-            "{}({}) {}",
-            self.name,
-            args.join(", "),
-            self.return_type.display_type()
-        )
+        let loosely_typed = lang.loosely_typed.unwrap_or(false);
+        if self.is_constructor || (loosely_typed && self.return_type.var_type == EMPTY_RETURN_TYPE)
+        {
+            format!("{}({})", self.name, args.join(", "))
+        } else {
+            format!(
+                "{}({}) {}",
+                self.name,
+                args.join(", "),
+                self.return_type.display_type()
+            )
+        }
     }
 }
 pub struct Class {
     pub name: String,
     pub namespace: String,
+    pub type_params: Vec<String>,
     pub functions: Vec<Function>,
     pub variables: Vec<Variable>,
 }
@@ -104,6 +123,7 @@ impl Class {
         Class {
             name,
             namespace: String::new(),
+            type_params: Vec::new(),
             functions: Vec::new(),
             variables: Vec::new(),
         }
@@ -113,8 +133,17 @@ impl Class {
         Class {
             name,
             namespace,
+            type_params: Vec::new(),
             functions: Vec::new(),
             variables: Vec::new(),
+        }
+    }
+
+    pub fn display_name(&self) -> String {
+        if self.type_params.is_empty() {
+            self.name.clone()
+        } else {
+            format!("{}~{}~", self.name, self.type_params.join(", "))
         }
     }
 
@@ -125,6 +154,22 @@ impl Class {
     pub fn add_variable(&mut self, var: Variable) {
         self.variables.push(var);
     }
+}
+
+/// Returns true if `kind` matches any pattern in `patterns`. A `None` or empty `patterns` never matches.
+fn any_match(patterns: &Option<Vec<String>>, kind: &str) -> bool {
+    patterns
+        .as_ref()
+        .is_some_and(|v| v.iter().any(|p| p == kind))
+}
+
+/// Like `any_match`, but preserves the `type_patterns` special case where the literal pattern
+/// `"type"` also matches any kind containing the substring "type" (relied on by Rust's grammar).
+fn any_type_match(patterns: &Option<Vec<String>>, kind: &str) -> bool {
+    patterns.as_ref().is_some_and(|v| {
+        v.iter()
+            .any(|p| kind == p || (p == "type" && kind.contains("type")))
+    })
 }
 
 pub struct Diagram<'a> {
@@ -142,12 +187,21 @@ impl<'a> Diagram<'a> {
         }
     }
 
+    pub fn lang(&self) -> &LangConfig {
+        self.lang
+    }
+
     pub fn build(&mut self, source: &[u8], parser: &mut tree_sitter::Parser) {
         let tree = parser.parse(source, None).unwrap();
         self.navigate_node(tree.root_node(), source, None, "");
     }
 
-    /// Recursively navigate the tree_sitter tree and build out Diagram
+    /// Recursively navigate the tree_sitter tree and build out Diagram.
+    ///
+    /// Each node is offered to the composite parts below in order; only the first part whose
+    /// config flag is present AND matches the node's kind runs. A part with no configured
+    /// pattern (`None`) never fires, so a language config only needs to declare the parts it
+    /// actually uses.
     pub fn navigate_node(
         &mut self,
         node: Node,
@@ -155,93 +209,14 @@ impl<'a> Diagram<'a> {
         class_index: Option<usize>,
         current_namespace: &str,
     ) {
-        let kind = node.kind();
         let mut next_class_index = class_index;
         let mut active_namespace = current_namespace.to_string();
-        if self.lang.import_patterns.iter().any(|p| p == kind) {
-            let import_text =
-                String::from_utf8_lossy(&source[node.start_byte()..node.end_byte()]).to_string();
-            self.imports.push(import_text);
-        } else if self.lang.namespace_patterns.iter().any(|p| p == kind) {
-            let name = self.extract_identifier(node, source);
-            if !name.is_empty() {
-                if active_namespace.is_empty() {
-                    active_namespace = name;
-                } else {
-                    active_namespace = format!("{}_{}", active_namespace, name);
-                }
-            }
-        } else if self.lang.class_patterns.iter().any(|p| p == kind) {
-            let name = self.extract_identifier(node, source);
-            if !name.is_empty() {
-                // update class index to match preexisting class if already exist
-                if let Some(idx) = self
-                    .classes
-                    .iter()
-                    .position(|class| class.name == name && class.namespace == active_namespace)
-                {
-                    next_class_index = Some(idx);
-                } else {
-                    // create new class and update indexes
-                    self.classes
-                        .push(Class::with_namespace(name, active_namespace.clone()));
-                    next_class_index = Some(self.classes.len() - 1);
-                }
-            }
-        } else if self.lang.function_patterns.iter().any(|p| p == kind) {
-            // Function/Method detection
-            let name = self.extract_identifier(node, source);
-            if !name.is_empty() {
-                let types = self.extract_type(node, source);
-                let return_type = if types.is_empty() || types[0] == EMPTY_RETURN_TYPE {
-                    Variable::void()
-                } else {
-                    let main_type = types[0].clone();
-                    let inners = if types.len() > 1 {
-                        Some(types[1..].to_vec())
-                    } else {
-                        None
-                    };
-                    Variable {
-                        var_type: main_type,
-                        inner_types: inners,
-                        name: None,
-                        private: false,
-                    }
-                };
-                let mut func = Function::new(name, return_type);
-                self.extract_parameters(node, source, &mut func);
 
-                if let Some(idx) = next_class_index {
-                    self.classes[idx].add_function(func);
-                }
-            }
-        } else if self.lang.variable_patterns.iter().any(|p| p == kind) {
-            // Field/Variable detection
-            let name = self.extract_identifier(node, source);
-            if !name.is_empty() {
-                let types = self.extract_type(node, source);
-                let main_type = types
-                    .first()
-                    .cloned()
-                    .unwrap_or_else(|| EMPTY_RETURN_TYPE.to_string());
-                let inners = if types.len() > 1 {
-                    types[1..].to_vec()
-                } else {
-                    Vec::new()
-                };
-                let is_private = self.extract_visibility(node, source);
-                let var = Variable {
-                    var_type: main_type,
-                    name: Some(name),
-                    inner_types: Some(inners),
-                    private: is_private,
-                };
-                if let Some(idx) = next_class_index {
-                    self.classes[idx].add_variable(var);
-                }
-            }
-        }
+        let _ = self.try_import(node, source)
+            || self.try_namespace(node, source, &mut active_namespace)
+            || self.try_class(node, source, &active_namespace, &mut next_class_index)
+            || self.try_function(node, source, next_class_index)
+            || self.try_variable(node, source, next_class_index);
 
         // Recursively travel all children nodes (break case is handled by empty for loop)
         let mut cursor = node.walk();
@@ -251,18 +226,191 @@ impl<'a> Diagram<'a> {
         }
     }
 
+    /// Gated on `import_patterns`. Returns whether the gate matched, not whether work was done.
+    fn try_import(&mut self, node: Node, source: &[u8]) -> bool {
+        let lang = self.lang;
+        if !any_match(&lang.import_patterns, node.kind()) {
+            return false;
+        }
+        let import_text =
+            String::from_utf8_lossy(&source[node.start_byte()..node.end_byte()]).to_string();
+        self.imports.push(import_text);
+        true
+    }
+
+    /// Gated on `namespace_patterns`.
+    fn try_namespace(&mut self, node: Node, source: &[u8], active_namespace: &mut String) -> bool {
+        let lang = self.lang;
+        if !any_match(&lang.namespace_patterns, node.kind()) {
+            return false;
+        }
+        let name = self.extract_identifier(node, source);
+        if !name.is_empty() {
+            if active_namespace.is_empty() {
+                *active_namespace = name;
+            } else {
+                *active_namespace = format!("{}_{}", active_namespace, name);
+            }
+        }
+        true
+    }
+
+    /// Gated on `class_patterns`.
+    fn try_class(
+        &mut self,
+        node: Node,
+        source: &[u8],
+        active_namespace: &str,
+        next_class_index: &mut Option<usize>,
+    ) -> bool {
+        let lang = self.lang;
+        if !any_match(&lang.class_patterns, node.kind()) {
+            return false;
+        }
+        let name = self.extract_identifier(node, source);
+        if !name.is_empty() {
+            let type_params = self.extract_class_type_params(node, source);
+            // update class index to match preexisting class if already exist
+            if let Some(idx) = self
+                .classes
+                .iter()
+                .position(|class| class.name == name && class.namespace == active_namespace)
+            {
+                if !type_params.is_empty() && self.classes[idx].type_params.is_empty() {
+                    self.classes[idx].type_params = type_params;
+                }
+                *next_class_index = Some(idx);
+            } else {
+                // create new class and update indexes
+                let mut new_class = Class::with_namespace(name, active_namespace.to_string());
+                new_class.type_params = type_params;
+                self.classes.push(new_class);
+                *next_class_index = Some(self.classes.len() - 1);
+            }
+        }
+        true
+    }
+
+    /// Gated on `function_patterns`.
+    fn try_function(&mut self, node: Node, source: &[u8], next_class_index: Option<usize>) -> bool {
+        let lang = self.lang;
+        if !any_match(&lang.function_patterns, node.kind()) {
+            return false;
+        }
+        let name = self.extract_identifier(node, source);
+        if !name.is_empty() {
+            let types = self.extract_type(node, source);
+            let return_type = if types.is_empty() || types[0] == EMPTY_RETURN_TYPE {
+                Variable::void()
+            } else {
+                let main_type = types[0].clone();
+                let inners = if types.len() > 1 {
+                    Some(types[1..].to_vec())
+                } else {
+                    None
+                };
+                Variable {
+                    var_type: main_type,
+                    inner_types: inners,
+                    name: None,
+                    private: false,
+                }
+            };
+            let mut func = Function::new(name, return_type);
+            func.is_constructor = any_match(&lang.constructor_patterns, node.kind());
+            self.extract_parameters(node, source, &mut func);
+
+            if let Some(idx) = next_class_index {
+                if self.lang.infer_param_types_from_fields.unwrap_or(false) {
+                    self.infer_param_types_from_fields(idx, &mut func);
+                }
+                self.classes[idx].add_function(func);
+            }
+        }
+        true
+    }
+
+    /// Gated on `variable_patterns`.
+    fn try_variable(&mut self, node: Node, source: &[u8], next_class_index: Option<usize>) -> bool {
+        let lang = self.lang;
+        if !any_match(&lang.variable_patterns, node.kind()) {
+            return false;
+        }
+        let name = self.extract_identifier(node, source);
+        if !name.is_empty() {
+            let types = self.extract_type(node, source);
+            let main_type = types
+                .first()
+                .cloned()
+                .unwrap_or_else(|| EMPTY_RETURN_TYPE.to_string());
+            let inners = if types.len() > 1 {
+                types[1..].to_vec()
+            } else {
+                Vec::new()
+            };
+            let is_private = self.extract_visibility(node, source);
+            let var = Variable {
+                var_type: main_type,
+                name: Some(name),
+                inner_types: Some(inners),
+                private: is_private,
+            };
+            if let Some(idx) = next_class_index {
+                self.classes[idx].add_variable(var);
+            }
+        }
+        true
+    }
+
+    /// Gated on `infer_param_types_from_fields`. Fills in the type of a field-promoting
+    /// parameter — one that declares no type because it names a field of the enclosing class
+    /// (e.g. Dart's `Box(this.inner)`) — from that field. Only fields already collected on the
+    /// class are visible, i.e. ones declared before this function in the source.
+    fn infer_param_types_from_fields(&self, class_index: usize, func: &mut Function) {
+        let class = &self.classes[class_index];
+        for arg in &mut func.arguments {
+            if arg.var_type != EMPTY_RETURN_TYPE {
+                continue;
+            }
+            let Some(name) = arg.name.as_deref() else {
+                continue;
+            };
+            if let Some(field) = class
+                .variables
+                .iter()
+                .find(|var| var.name.as_deref() == Some(name))
+            {
+                arg.var_type = field.var_type.clone();
+                arg.inner_types = field.inner_types.clone();
+            }
+        }
+    }
+
     /// Helper to find identifiers (names) which may have different kind names across grammars.
     fn extract_identifier(&self, node: Node, source: &[u8]) -> String {
+        // Some grammars (e.g. JS's `formal_parameters`) use a bare identifier token as the
+        // parameter node itself rather than wrapping it in a `parameter`/`required_parameter`
+        // node — it has no children to walk, so handle that leaf case directly.
+        if node.child_count() == 0 && any_match(&self.lang.identifier_patterns, node.kind()) {
+            return String::from_utf8_lossy(&source[node.start_byte()..node.end_byte()])
+                .to_string();
+        }
+
         let mut cursor = node.walk();
         let mut best_guess = String::new();
 
-        for child in node.children(&mut cursor) {
+        for (idx, child) in node.children(&mut cursor).enumerate() {
             let kind = child.kind();
 
-            if self.lang.skip_patterns.iter().any(|p| p == kind) {
+            if any_match(&self.lang.skip_patterns, kind) {
                 continue;
             }
-            if self.lang.identifier_patterns.iter().any(|p| p == kind) {
+            if let Some(field_name) = node.field_name_for_child(idx as u32)
+                && any_match(&self.lang.type_field_names, field_name)
+            {
+                continue;
+            }
+            if any_match(&self.lang.identifier_patterns, kind) {
                 if kind == "identifier" || kind == "field_identifier" {
                     return String::from_utf8_lossy(&source[child.start_byte()..child.end_byte()])
                         .to_string();
@@ -275,7 +423,7 @@ impl<'a> Diagram<'a> {
             }
 
             // Recurse into certain nodes that wrap identifiers
-            if self.lang.wrapper_patterns.iter().any(|p| p == kind) {
+            if any_match(&self.lang.wrapper_patterns, kind) {
                 let name = self.extract_identifier(child, source);
                 if !name.is_empty() {
                     return name;
@@ -291,27 +439,49 @@ impl<'a> Diagram<'a> {
         for child in node.children(&mut cursor) {
             let kind = child.kind();
 
-            if self
-                .lang
-                .type_patterns
-                .iter()
-                .any(|p| kind == p || (p == "type" && kind.contains("type")))
-            {
-                let full_type =
+            if any_match(&self.lang.skip_patterns, kind) {
+                continue;
+            }
+
+            if any_type_match(&self.lang.type_patterns, kind) {
+                let mut raw_text =
                     String::from_utf8_lossy(&source[child.start_byte()..child.end_byte()])
                         .to_string();
+                // Some grammars (e.g. Dart) put a type's generic arguments in a sibling node
+                // instead of inside the type node, so `List<int>` is `type_identifier` followed
+                // by `type_arguments`. Glue the sibling's text on so the generic split below
+                // sees the whole `List<int>`.
+                if let Some(sibling) = child.next_sibling()
+                    && any_match(&self.lang.type_argument_patterns, sibling.kind())
+                {
+                    raw_text.push_str(&String::from_utf8_lossy(
+                        &source[sibling.start_byte()..sibling.end_byte()],
+                    ));
+                }
+                let strip_prefix = self
+                    .lang
+                    .type_annotation_strip_prefix
+                    .as_deref()
+                    .filter(|s| !s.is_empty());
+                let full_type = match strip_prefix {
+                    Some(prefix) if raw_text.starts_with(prefix) => {
+                        raw_text[prefix.len()..].trim().to_string()
+                    }
+                    _ => raw_text,
+                };
 
                 // Naive parsing of generics: "Vec<User>" -> ["Vec", "User"]
                 if let Some(pos) = full_type.find('<') {
-                    let main = full_type[..pos].trim().to_string();
+                    let raw_main = self.strip_type_suffixes(&full_type[..pos]);
+                    let main = self.strip_type_path(&raw_main);
                     let mut inners = Vec::new();
                     if let Some(end_pos) = full_type.rfind('>') {
                         let inner_str = &full_type[pos + 1..end_pos];
                         // split by comma for multiple generics like HashMap<K, V>
                         for part in inner_str.split(',') {
-                            let part = part.trim();
+                            let part = self.strip_type_suffixes(part);
                             if !part.is_empty() {
-                                inners.push(part.to_string());
+                                inners.push(part);
                             }
                         }
                     }
@@ -319,11 +489,11 @@ impl<'a> Diagram<'a> {
                     result.append(&mut inners);
                     return result;
                 }
-                return vec![full_type];
+                return vec![self.strip_type_path(&self.strip_type_suffixes(&full_type))];
             }
 
             // Recurse into certain nodes that wrap types
-            if self.lang.wrapper_patterns.iter().any(|p| p == kind) {
+            if any_match(&self.lang.wrapper_patterns, kind) {
                 let types = self.extract_type(child, source);
                 if !types.is_empty() && types[0] != EMPTY_RETURN_TYPE {
                     return types;
@@ -333,23 +503,94 @@ impl<'a> Diagram<'a> {
         vec![EMPTY_RETURN_TYPE.to_string()]
     }
 
+    /// Gated on `type_strip_suffixes`. Drops trailing declarator noise a grammar bakes into a
+    /// type's text (e.g. Objective-C's `NSString *`), so the type reads as its bare name. Always
+    /// trims surrounding whitespace, which the callers already relied on.
+    fn strip_type_suffixes(&self, type_str: &str) -> String {
+        let mut remaining = type_str.trim();
+        let Some(suffixes) = self.lang.type_strip_suffixes.as_ref() else {
+            return remaining.to_string();
+        };
+        while let Some(stripped) = suffixes
+            .iter()
+            .filter(|s| !s.is_empty())
+            .find_map(|s| remaining.strip_suffix(s.as_str()))
+        {
+            remaining = stripped.trim_end();
+        }
+        remaining.to_string()
+    }
+
+    fn strip_type_path(&self, type_str: &str) -> String {
+        let Some(sep) = self
+            .lang
+            .type_path_separator
+            .as_deref()
+            .filter(|s| !s.is_empty())
+        else {
+            return type_str.to_string();
+        };
+        type_str.rsplit(sep).next().unwrap_or(type_str).to_string()
+    }
+
+    /// Gated on `class_type_parameter_patterns` being present and non-empty.
+    fn extract_class_type_params(&self, node: Node, source: &[u8]) -> Vec<String> {
+        if !self
+            .lang
+            .class_type_parameter_patterns
+            .as_ref()
+            .is_some_and(|v| !v.is_empty())
+        {
+            return Vec::new();
+        }
+        // Usually the type parameter list is a direct child of the class node (Rust, Java, C#,
+        // TypeScript). C++'s `template<typename T> class Box` instead attaches it to the
+        // `template_declaration` node wrapping the class, so fall back to the parent.
+        for candidate in [Some(node), node.parent()].into_iter().flatten() {
+            let mut cursor = candidate.walk();
+            for child in candidate.children(&mut cursor) {
+                if any_match(&self.lang.class_type_parameter_patterns, child.kind()) {
+                    let text =
+                        String::from_utf8_lossy(&source[child.start_byte()..child.end_byte()])
+                            .to_string();
+                    // strip surrounding < > and split by comma
+                    let inner = text.trim_start_matches('<').trim_end_matches('>');
+                    let params: Vec<String> = inner
+                        .split(',')
+                        // Drops a leading declaration keyword some grammars use per parameter,
+                        // e.g. C++'s `typename`/`class` in `template<typename T>`.
+                        .filter_map(|s| s.split_whitespace().next_back())
+                        .map(str::to_string)
+                        .collect();
+                    if !params.is_empty() {
+                        return params;
+                    }
+                }
+            }
+        }
+        Vec::new()
+    }
+
     /// Helper to extract the visibility of variables and functions
     fn extract_visibility(&self, node: Node, source: &[u8]) -> bool {
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
             let kind = child.kind();
-            if self
-                .lang
-                .visibility_modifier_patterns
-                .iter()
-                .any(|p| p == kind)
-            {
+            if any_match(&self.lang.visibility_modifier_patterns, kind) {
                 let modifier =
                     String::from_utf8_lossy(&source[child.start_byte()..child.end_byte()])
                         .to_string();
 
-                let is_private = self.lang.private_modifier_patterns.contains(&modifier);
-                let is_public = self.lang.public_modifier_patterns.contains(&modifier);
+                let is_private = self
+                    .lang
+                    .private_modifier_patterns
+                    .as_ref()
+                    .is_some_and(|v| v.contains(&modifier));
+                let is_public = self
+                    .lang
+                    .public_modifier_patterns
+                    .as_ref()
+                    .is_some_and(|v| v.contains(&modifier));
 
                 if is_private {
                     return true;
@@ -358,48 +599,73 @@ impl<'a> Diagram<'a> {
                 }
             }
         }
-        self.lang.private_by_default
+        self.lang.private_by_default.unwrap_or(false)
     }
 
     /// Helper to extract parameters and add them to a function.
     fn extract_parameters(&self, node: Node, source: &[u8], func: &mut Function) {
+        // Most grammars wrap parameters in a list node (`parameter_list`, `formal_parameters`),
+        // but some hang them straight off the function node — Objective-C's `method_declaration`
+        // holds its `method_parameter` children directly. Such a language names the function
+        // node's own kind as a parameter container, so check the node itself as well as its
+        // children.
+        if any_match(&self.lang.parameter_container_patterns, node.kind()) {
+            self.collect_parameters(node, source, func);
+        }
+
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            if self
-                .lang
-                .parameter_container_patterns
-                .iter()
-                .any(|p| child.kind() == *p)
-            {
-                let mut p_cursor = child.walk();
-                for param in child.children(&mut p_cursor) {
-                    if self
-                        .lang
-                        .parameter_patterns
-                        .iter()
-                        .any(|p| param.kind() == *p)
-                    {
-                        let p_name = self.extract_identifier(param, source);
-                        let types = self.extract_type(param, source);
-                        let main_type = types
-                            .first()
-                            .cloned()
-                            .unwrap_or_else(|| EMPTY_RETURN_TYPE.to_string());
-                        let inners = if types.len() > 1 {
-                            types[1..].to_vec()
-                        } else {
-                            Vec::new()
-                        };
+            if any_match(&self.lang.parameter_container_patterns, child.kind()) {
+                self.collect_parameters(child, source, func);
+            } else if any_match(&self.lang.wrapper_patterns, child.kind()) {
+                // Some grammars (e.g. C++'s `function_declarator`) nest the parameter list
+                // inside a wrapper node rather than exposing it as a direct child.
+                self.extract_parameters(child, source, func);
+            }
+        }
+    }
 
-                        if !p_name.is_empty() {
-                            func.add_argument(Variable {
-                                var_type: main_type,
-                                name: Some(p_name),
-                                inner_types: Some(inners),
-                                private: false,
-                            });
-                        }
-                    }
+    /// Reads the parameters held directly by `container` onto `func`.
+    fn collect_parameters(&self, container: Node, source: &[u8], func: &mut Function) {
+        let mut p_cursor = container.walk();
+        for param in container.children(&mut p_cursor) {
+            let param_kind = param.kind();
+
+            // Handle bare consuming `self` (not &self or &mut self)
+            if any_match(&self.lang.self_parameter_patterns, param_kind) {
+                let text = String::from_utf8_lossy(&source[param.start_byte()..param.end_byte()])
+                    .to_string();
+                if !text.starts_with('&') {
+                    func.add_argument(Variable {
+                        var_type: EMPTY_RETURN_TYPE.to_string(),
+                        name: Some("self".to_string()),
+                        inner_types: None,
+                        private: false,
+                    });
+                }
+                continue;
+            }
+
+            if any_match(&self.lang.parameter_patterns, param_kind) {
+                let p_name = self.extract_identifier(param, source);
+                let types = self.extract_type(param, source);
+                let main_type = types
+                    .first()
+                    .cloned()
+                    .unwrap_or_else(|| EMPTY_RETURN_TYPE.to_string());
+                let inners = if types.len() > 1 {
+                    types[1..].to_vec()
+                } else {
+                    Vec::new()
+                };
+
+                if !p_name.is_empty() {
+                    func.add_argument(Variable {
+                        var_type: main_type,
+                        name: Some(p_name),
+                        inner_types: Some(inners),
+                        private: false,
+                    });
                 }
             }
         }
@@ -532,7 +798,11 @@ mod tests {
         // find the type node
 
         fn find_type_node<'a>(node: Node<'a>, diagram: &Diagram) -> Option<Node<'a>> {
-            if diagram.lang.type_patterns.iter().any(|p| p == node.kind())
+            if diagram
+                .lang
+                .type_patterns
+                .as_ref()
+                .is_some_and(|v| v.iter().any(|p| p == node.kind()))
                 || node.kind().contains("type")
             {
                 return Some(node);

@@ -1,0 +1,75 @@
+minimum_prek_version = "0.4.10"
+default_install_hook_types = ["pre-commit", "pre-push", "commit-msg"]
+fail_fast = true
+
+[[repos]]
+repo = "builtin"
+
+[[repos.hooks]]
+id = "trailing-whitespace"
+
+[[repos.hooks]]
+id = "check-toml"
+
+[[repos.hooks]]
+id = "check-yaml"
+
+[[repos.hooks]]
+id = "check-added-large-files"
+
+[[repos]]
+repo = "https://github.com/crate-ci/typos"
+rev = "v1.49.0"
+
+[[repos.hooks]]
+id = "typos"
+args = ["--force-exclude"]
+
+[[repos.hooks]]
+id = "typos"
+name = "Spell check commit message"
+stages = ["commit-msg"]
+
+[[repos]]
+repo = "https://github.com/pre-commit/mirrors-prettier"
+rev = "v4.0.0-alpha.8"
+
+[[repos.hooks]]
+id = "prettier"
+types_or = ["lua"]
+
+[[repos]]
+repo = "local"
+
+[[repos.hooks]]
+id = "cargo-fmt"
+name = "cargo fmt"
+entry = "cargo fmt --all -- --check"
+language = "system"
+types = ["rust"]
+pass_filenames = false
+
+[[repos.hooks]]
+id = "cargo-clippy"
+name = "cargo clippy"
+entry = "cargo clippy --all-targets --all-features -- -D warnings"
+language = "system"
+types = ["rust"]
+pass_filenames = false
+
+[[repos.hooks]]
+id = "cargo-check"
+name = "cargo check"
+entry = "cargo check --workspace --all-targets --all-features"
+language = "system"
+types = ["rust"]
+pass_filenames = false
+
+[[repos.hooks]]
+id = "cargo-test"
+name = "cargo test"
+entry = "cargo test --workspace --all-targets --all-features"
+language = "system"
+types = ["rust"]
+pass_filenames = false
+stages = ["pre-push"]

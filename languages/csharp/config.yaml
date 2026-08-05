@@ -9,7 +9,6 @@ function_patterns:
   - constructor_declaration
 variable_patterns:
   - field_declaration
-  - variable_declarator
 identifier_patterns:
   - identifier
   - variable_identifier
@@ -17,12 +16,18 @@ identifier_patterns:
 type_patterns:
   - type
   - predefined_type
+  - array_type
+  - identifier
 parameter_container_patterns:
   - parameter_list
 parameter_patterns:
   - parameter
 wrapper_patterns:
   - variable_declaration
+  - variable_declarator
+type_field_names:
+  - type
+  - returns
 skip_patterns:
   - modifier
 import_patterns:
@@ -32,9 +37,11 @@ namespace_patterns:
 visibility_modifier_patterns:
   - modifier
 private_by_default: false
-public_modifier_patterns: 
+public_modifier_patterns:
   - public
 private_modifier_patterns:
   - private
   - protected
   - internal
+class_type_parameter_patterns:
+  - type_parameter_list

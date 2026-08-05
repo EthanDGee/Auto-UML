@@ -46,8 +46,108 @@ namespace_patterns:
 visibility_modifier_patterns:
   - modifiers
 private_by_default: false
-public_modifier_patterns: 
+public_modifier_patterns:
   - public
 private_modifier_patterns:
   - private
   - protected
+class_type_parameter_patterns:
+  - type_parameters
+constructor_patterns:
+  - constructor_declaration
+suppress_self_relations: true
+infer_unresolved_type_relations: true
+builtin_type_names:
+  # java.lang
+  - Object
+  - String
+  - StringBuilder
+  - StringBuffer
+  - CharSequence
+  - Boolean
+  - Byte
+  - Character
+  - Short
+  - Integer
+  - Long
+  - Float
+  - Double
+  - Number
+  - Math
+  - StrictMath
+  - Void
+  - Class
+  - ClassLoader
+  - Package
+  - Enum
+  - Record
+  - Iterable
+  - Comparable
+  - Cloneable
+  - Runnable
+  - AutoCloseable
+  - Appendable
+  - Readable
+  - Process
+  - ProcessBuilder
+  - Runtime
+  - RuntimePermission
+  - SecurityManager
+  - System
+  - Thread
+  - ThreadGroup
+  - ThreadLocal
+  # java.lang exceptions/errors
+  - Throwable
+  - Exception
+  - Error
+  - RuntimeException
+  - IllegalArgumentException
+  - IllegalStateException
+  - IndexOutOfBoundsException
+  - ArrayIndexOutOfBoundsException
+  - StringIndexOutOfBoundsException
+  - NullPointerException
+  - ClassCastException
+  - ArithmeticException
+  - NumberFormatException
+  - UnsupportedOperationException
+  - NegativeArraySizeException
+  - ArrayStoreException
+  - CloneNotSupportedException
+  - InterruptedException
+  - SecurityException
+  - StackOverflowError
+  - OutOfMemoryError
+  - AssertionError
+  - VirtualMachineError
+  - LinkageError
+  - NoClassDefFoundError
+  - ExceptionInInitializerError
+  - IncompatibleClassChangeError
+  - InstantiationException
+  - IllegalAccessException
+  - NoSuchFieldException
+  - NoSuchMethodException
+  - ClassNotFoundException
+  # common java.util (frequently used without qualifying import in examples)
+  - List
+  - Map
+  - Set
+  - Collection
+  - ArrayList
+  - LinkedList
+  - HashMap
+  - LinkedHashMap
+  - TreeMap
+  - HashSet
+  - LinkedHashSet
+  - TreeSet
+  - Optional
+  - Iterator
+  - Comparator
+  - Objects
+  - Arrays
+  - Collections
+  - Date
+  - UUID

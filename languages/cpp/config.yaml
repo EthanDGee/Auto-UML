@@ -20,6 +20,11 @@ identifier_patterns:
 type_patterns:
   - primitive_type
   - type_identifier
+  - sized_type_specifier
+  - qualified_identifier
+type_path_separator: "::"
+class_type_parameter_patterns:
+  - template_parameter_list
 parameter_container_patterns:
   - parameter_list
 parameter_patterns:
@@ -38,7 +43,7 @@ namespace_patterns:
 visibility_modifier_patterns:
   - access_specifier
 private_by_default: true
-public_modifier_patterns: 
+public_modifier_patterns:
   - public
 private_modifier_patterns:
   - private

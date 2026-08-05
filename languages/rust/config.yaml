@@ -26,6 +26,7 @@ parameter_patterns:
   - parameter
   - formal_parameter
 wrapper_patterns:
+  - generic_type
   - variable_declarator
   - field_declaration
   - function_item
@@ -45,6 +46,10 @@ namespace_patterns:
 visibility_modifier_patterns:
   - visibility_modifier
 private_by_default: true
-public_modifier_patterns: 
+public_modifier_patterns:
   - pub
-private_modifier_patterns: []
+class_type_parameter_patterns:
+  - type_parameters
+type_path_separator: "::"
+self_parameter_patterns:
+  - self_parameter

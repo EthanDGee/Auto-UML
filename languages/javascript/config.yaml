@@ -13,7 +13,6 @@ identifier_patterns:
   - identifier
   - property_identifier
   - type_identifier
-type_patterns: []
 parameter_container_patterns:
   - formal_parameters
 parameter_patterns:
@@ -21,14 +20,13 @@ parameter_patterns:
 wrapper_patterns:
   - lexical_declaration
   - variable_declaration
-skip_patterns: []
 import_patterns:
   - import_statement
-namespace_patterns: []
 visibility_modifier_patterns:
   - accessibility_modifier
 private_by_default: false
-public_modifier_patterns: 
+public_modifier_patterns:
   - public
 private_modifier_patterns:
   - private
+loosely_typed: true
