@@ -34,11 +34,20 @@ pub struct LangConfig {
     /// name. Skipped during identifier extraction — needed for grammars (e.g. C#) that reuse
     /// the same node kind (`identifier`) for both a type reference and a declared name.
     pub type_field_names: Option<Vec<String>>,
+    /// Node kinds that carry a type's generic arguments as a *sibling* of the type-name node
+    /// rather than inside it (e.g. Dart's `List<int>` parses as `type_identifier` +
+    /// `type_arguments`). Merged into the type text before generics are split out.
+    pub type_argument_patterns: Option<Vec<String>>,
     pub type_path_separator: Option<String>,
     pub self_parameter_patterns: Option<Vec<String>>,
     pub type_annotation_strip_prefix: Option<String>,
     /// Node kinds that are constructors: suppress their return-type display (no trailing `void`).
     pub constructor_patterns: Option<Vec<String>>,
+    /// Language has field-promoting parameters — a parameter that declares no type because it
+    /// names an existing field of the enclosing class (e.g. Dart's `Box(this.inner)`). When set,
+    /// an untyped parameter adopts the type of the same-named field already collected on the
+    /// enclosing class. See `Diagram::infer_param_types_from_fields`.
+    pub infer_param_types_from_fields: Option<bool>,
     /// Drop association/dependency edges where the source and destination class are the same.
     pub suppress_self_relations: Option<bool>,
     /// Draw an association edge to a field's type even when that class isn't defined in the

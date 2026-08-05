@@ -321,6 +321,9 @@ impl<'a> Diagram<'a> {
             self.extract_parameters(node, source, &mut func);
 
             if let Some(idx) = next_class_index {
+                if self.lang.infer_param_types_from_fields.unwrap_or(false) {
+                    self.infer_param_types_from_fields(idx, &mut func);
+                }
                 self.classes[idx].add_function(func);
             }
         }
@@ -357,6 +360,30 @@ impl<'a> Diagram<'a> {
             }
         }
         true
+    }
+
+    /// Gated on `infer_param_types_from_fields`. Fills in the type of a field-promoting
+    /// parameter — one that declares no type because it names a field of the enclosing class
+    /// (e.g. Dart's `Box(this.inner)`) — from that field. Only fields already collected on the
+    /// class are visible, i.e. ones declared before this function in the source.
+    fn infer_param_types_from_fields(&self, class_index: usize, func: &mut Function) {
+        let class = &self.classes[class_index];
+        for arg in &mut func.arguments {
+            if arg.var_type != EMPTY_RETURN_TYPE {
+                continue;
+            }
+            let Some(name) = arg.name.as_deref() else {
+                continue;
+            };
+            if let Some(field) = class
+                .variables
+                .iter()
+                .find(|var| var.name.as_deref() == Some(name))
+            {
+                arg.var_type = field.var_type.clone();
+                arg.inner_types = field.inner_types.clone();
+            }
+        }
     }
 
     /// Helper to find identifiers (names) which may have different kind names across grammars.
@@ -417,9 +444,20 @@ impl<'a> Diagram<'a> {
             }
 
             if any_type_match(&self.lang.type_patterns, kind) {
-                let raw_text =
+                let mut raw_text =
                     String::from_utf8_lossy(&source[child.start_byte()..child.end_byte()])
                         .to_string();
+                // Some grammars (e.g. Dart) put a type's generic arguments in a sibling node
+                // instead of inside the type node, so `List<int>` is `type_identifier` followed
+                // by `type_arguments`. Glue the sibling's text on so the generic split below
+                // sees the whole `List<int>`.
+                if let Some(sibling) = child.next_sibling()
+                    && any_match(&self.lang.type_argument_patterns, sibling.kind())
+                {
+                    raw_text.push_str(&String::from_utf8_lossy(
+                        &source[sibling.start_byte()..sibling.end_byte()],
+                    ));
+                }
                 let strip_prefix = self
                     .lang
                     .type_annotation_strip_prefix

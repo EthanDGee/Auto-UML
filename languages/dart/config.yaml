@@ -11,7 +11,7 @@ function_patterns:
 variable_patterns:
   - field_declaration
   - variable_declaration
-  - initialized_identifier
+  - declaration
 identifier_patterns:
   - identifier
   - type_identifier
@@ -19,6 +19,8 @@ type_patterns:
   - type_annotation
   - type_identifier
   - void_type
+type_argument_patterns:
+  - type_arguments
 parameter_container_patterns:
   - formal_parameter_list
 parameter_patterns:
@@ -31,6 +33,8 @@ wrapper_patterns:
   - class_member_definition
   - method_signature
   - initialized_identifier_list
+  - initialized_identifier
+  - constructor_param
   - program
 skip_patterns:
   - "final"
@@ -55,3 +59,54 @@ public_modifier_patterns:
   - public
 private_modifier_patterns:
   - private
+class_type_parameter_patterns:
+  - type_parameters
+constructor_patterns:
+  - constructor_signature
+infer_param_types_from_fields: true
+suppress_self_relations: true
+infer_unresolved_type_relations: true
+builtin_type_names:
+  - Object
+  - String
+  - StringBuffer
+  - StringSink
+  - Comparable
+  - Pattern
+  - RegExp
+  - Match
+  - Symbol
+  - Type
+  - Function
+  - Record
+  - Enum
+  - Null
+  - Never
+  - Future
+  - Stream
+  - Iterable
+  - Iterator
+  - List
+  - Map
+  - MapEntry
+  - Set
+  - Runes
+  - BigInt
+  - DateTime
+  - Duration
+  - Uri
+  - Stopwatch
+  - Error
+  - Exception
+  - ArgumentError
+  - RangeError
+  - IndexError
+  - StateError
+  - FormatException
+  - UnsupportedError
+  - UnimplementedError
+  - AssertionError
+  - TypeError
+  - ConcurrentModificationError
+  - OutOfMemoryError
+  - StackOverflowError
