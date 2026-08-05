@@ -39,6 +39,11 @@ pub struct LangConfig {
     /// `type_arguments`). Merged into the type text before generics are split out.
     pub type_argument_patterns: Option<Vec<String>>,
     pub type_path_separator: Option<String>,
+    /// Trailing text a grammar leaves attached to a type's own node that isn't part of the type
+    /// name — e.g. the pointer star in Objective-C/C's `type_name` for `NSString *`. Stripped
+    /// (repeatedly, along with surrounding whitespace) from both a type and its generic
+    /// arguments. Absent means nothing is stripped.
+    pub type_strip_suffixes: Option<Vec<String>>,
     pub self_parameter_patterns: Option<Vec<String>>,
     pub type_annotation_strip_prefix: Option<String>,
     /// Node kinds that are constructors: suppress their return-type display (no trailing `void`).

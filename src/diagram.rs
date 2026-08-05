@@ -472,16 +472,16 @@ impl<'a> Diagram<'a> {
 
                 // Naive parsing of generics: "Vec<User>" -> ["Vec", "User"]
                 if let Some(pos) = full_type.find('<') {
-                    let raw_main = full_type[..pos].trim();
-                    let main = self.strip_type_path(raw_main);
+                    let raw_main = self.strip_type_suffixes(&full_type[..pos]);
+                    let main = self.strip_type_path(&raw_main);
                     let mut inners = Vec::new();
                     if let Some(end_pos) = full_type.rfind('>') {
                         let inner_str = &full_type[pos + 1..end_pos];
                         // split by comma for multiple generics like HashMap<K, V>
                         for part in inner_str.split(',') {
-                            let part = part.trim();
+                            let part = self.strip_type_suffixes(part);
                             if !part.is_empty() {
-                                inners.push(part.to_string());
+                                inners.push(part);
                             }
                         }
                     }
@@ -489,7 +489,7 @@ impl<'a> Diagram<'a> {
                     result.append(&mut inners);
                     return result;
                 }
-                return vec![self.strip_type_path(&full_type)];
+                return vec![self.strip_type_path(&self.strip_type_suffixes(&full_type))];
             }
 
             // Recurse into certain nodes that wrap types
@@ -501,6 +501,24 @@ impl<'a> Diagram<'a> {
             }
         }
         vec![EMPTY_RETURN_TYPE.to_string()]
+    }
+
+    /// Gated on `type_strip_suffixes`. Drops trailing declarator noise a grammar bakes into a
+    /// type's text (e.g. Objective-C's `NSString *`), so the type reads as its bare name. Always
+    /// trims surrounding whitespace, which the callers already relied on.
+    fn strip_type_suffixes(&self, type_str: &str) -> String {
+        let mut remaining = type_str.trim();
+        let Some(suffixes) = self.lang.type_strip_suffixes.as_ref() else {
+            return remaining.to_string();
+        };
+        while let Some(stripped) = suffixes
+            .iter()
+            .filter(|s| !s.is_empty())
+            .find_map(|s| remaining.strip_suffix(s.as_str()))
+        {
+            remaining = stripped.trim_end();
+        }
+        remaining.to_string()
     }
 
     fn strip_type_path(&self, type_str: &str) -> String {
@@ -586,56 +604,69 @@ impl<'a> Diagram<'a> {
 
     /// Helper to extract parameters and add them to a function.
     fn extract_parameters(&self, node: Node, source: &[u8], func: &mut Function) {
+        // Most grammars wrap parameters in a list node (`parameter_list`, `formal_parameters`),
+        // but some hang them straight off the function node — Objective-C's `method_declaration`
+        // holds its `method_parameter` children directly. Such a language names the function
+        // node's own kind as a parameter container, so check the node itself as well as its
+        // children.
+        if any_match(&self.lang.parameter_container_patterns, node.kind()) {
+            self.collect_parameters(node, source, func);
+        }
+
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
             if any_match(&self.lang.parameter_container_patterns, child.kind()) {
-                let mut p_cursor = child.walk();
-                for param in child.children(&mut p_cursor) {
-                    let param_kind = param.kind();
-
-                    // Handle bare consuming `self` (not &self or &mut self)
-                    if any_match(&self.lang.self_parameter_patterns, param_kind) {
-                        let text =
-                            String::from_utf8_lossy(&source[param.start_byte()..param.end_byte()])
-                                .to_string();
-                        if !text.starts_with('&') {
-                            func.add_argument(Variable {
-                                var_type: EMPTY_RETURN_TYPE.to_string(),
-                                name: Some("self".to_string()),
-                                inner_types: None,
-                                private: false,
-                            });
-                        }
-                        continue;
-                    }
-
-                    if any_match(&self.lang.parameter_patterns, param_kind) {
-                        let p_name = self.extract_identifier(param, source);
-                        let types = self.extract_type(param, source);
-                        let main_type = types
-                            .first()
-                            .cloned()
-                            .unwrap_or_else(|| EMPTY_RETURN_TYPE.to_string());
-                        let inners = if types.len() > 1 {
-                            types[1..].to_vec()
-                        } else {
-                            Vec::new()
-                        };
-
-                        if !p_name.is_empty() {
-                            func.add_argument(Variable {
-                                var_type: main_type,
-                                name: Some(p_name),
-                                inner_types: Some(inners),
-                                private: false,
-                            });
-                        }
-                    }
-                }
+                self.collect_parameters(child, source, func);
             } else if any_match(&self.lang.wrapper_patterns, child.kind()) {
                 // Some grammars (e.g. C++'s `function_declarator`) nest the parameter list
                 // inside a wrapper node rather than exposing it as a direct child.
                 self.extract_parameters(child, source, func);
+            }
+        }
+    }
+
+    /// Reads the parameters held directly by `container` onto `func`.
+    fn collect_parameters(&self, container: Node, source: &[u8], func: &mut Function) {
+        let mut p_cursor = container.walk();
+        for param in container.children(&mut p_cursor) {
+            let param_kind = param.kind();
+
+            // Handle bare consuming `self` (not &self or &mut self)
+            if any_match(&self.lang.self_parameter_patterns, param_kind) {
+                let text = String::from_utf8_lossy(&source[param.start_byte()..param.end_byte()])
+                    .to_string();
+                if !text.starts_with('&') {
+                    func.add_argument(Variable {
+                        var_type: EMPTY_RETURN_TYPE.to_string(),
+                        name: Some("self".to_string()),
+                        inner_types: None,
+                        private: false,
+                    });
+                }
+                continue;
+            }
+
+            if any_match(&self.lang.parameter_patterns, param_kind) {
+                let p_name = self.extract_identifier(param, source);
+                let types = self.extract_type(param, source);
+                let main_type = types
+                    .first()
+                    .cloned()
+                    .unwrap_or_else(|| EMPTY_RETURN_TYPE.to_string());
+                let inners = if types.len() > 1 {
+                    types[1..].to_vec()
+                } else {
+                    Vec::new()
+                };
+
+                if !p_name.is_empty() {
+                    func.add_argument(Variable {
+                        var_type: main_type,
+                        name: Some(p_name),
+                        inner_types: Some(inners),
+                        private: false,
+                    });
+                }
             }
         }
     }
