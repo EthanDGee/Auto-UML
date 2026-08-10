@@ -170,27 +170,18 @@ fn main() {
                 .expect("Failed to create temporary directory for clone");
         }
 
-        println!("Cloning {} to {}...", git_url, temp_path.display());
-
-        let mut callbacks = git2::RemoteCallbacks::new();
-        callbacks.transfer_progress(|progress| {
-            print!(
-                "\rCloning: {}/{} objects ({}%)",
-                progress.received_objects(),
-                progress.total_objects(),
-                100 * progress.received_objects() / progress.total_objects()
-            );
-            std::io::Write::flush(&mut std::io::stdout()).unwrap();
-            true
-        });
+        println!("Cloning {}...", git_url);
 
         let mut options = git2::FetchOptions::new();
-        options.remote_callbacks(callbacks);
+        // Shallow clone: only the tip commit is needed to generate a diagram.
         options.depth(1);
 
-        git2::Repository::clone(git_url, &temp_path).expect("Failed to clone repository");
+        git2::build::RepoBuilder::new()
+            .fetch_options(options)
+            .clone(git_url, &temp_path)
+            .expect("Failed to clone repository");
 
-        println!("\nClone complete. Analyzing...");
+        println!("Clone complete. Analyzing...");
 
         temp_dir = Some(temp_path.clone());
         temp_path
