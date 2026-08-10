@@ -63,7 +63,7 @@ dependencies = [
 
 [[package]]
 name = "auto-uml"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "clap",
  "git2",
