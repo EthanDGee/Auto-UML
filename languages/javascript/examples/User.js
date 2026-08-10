@@ -1,5 +1,5 @@
 class User {
-    id;
-    username;
-    email;
+  id;
+  username;
+  email;
 }

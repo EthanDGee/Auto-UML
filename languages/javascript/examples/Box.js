@@ -1,6 +1,6 @@
 class Box {
-    inner;
-    get() {
-        return this.inner;
-    }
+  inner;
+  get() {
+    return this.inner;
+  }
 }

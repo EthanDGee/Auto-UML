@@ -1,6 +1,6 @@
 class ComplexData {
-    raw_bytes;
-    process(mode) {
-        return true;
-    }
+  raw_bytes;
+  process(mode) {
+    return true;
+  }
 }
