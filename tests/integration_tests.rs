@@ -65,7 +65,7 @@ fn setup_parser(lang: &str) -> Parser {
         }
         "dart" => {
             parser
-                .set_language(&tree_sitter_dart::language())
+                .set_language(&tree_sitter_dart::LANGUAGE.into())
                 .expect("Error loading Dart grammar");
         }
         "kotlin" => {
