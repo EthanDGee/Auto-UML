@@ -9,7 +9,7 @@ license = "MIT"
 name = "auto-uml"
 readme = "README.md"
 repository = "https://github.com/EthanDGee/Auto-UML"
-version = "0.7.1"
+version = "0.7.2"
 
 [dependencies]
 clap = { version = "4.5.60", features = ["derive"] }
