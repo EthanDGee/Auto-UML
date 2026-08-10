@@ -1,6 +1,6 @@
 # Documentation Overview
 
-Welcome to the `auto-UML` documentation. This project is a lightning-fast automatic UML diagram generator that uses Tree-sitter to parse source code and generate Mermaid class diagrams.
+Welcome to the `auto-UML` documentation. This project is a lightning-fast automatic UML diagram generator that uses Tree-sitter to parse source code and generate Mermaid or Graphviz class diagrams.
 
 ## Key Concepts
 

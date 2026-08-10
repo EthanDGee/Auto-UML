@@ -18,7 +18,7 @@ Fortunately, this is already handled for most languages by the Rust community. S
 
 To add these to the project all that is required is to run the following command:
 
-```bash
+```fish
 cargo add tree-sitter-<lang>
 ```
 
@@ -104,7 +104,9 @@ fn setup_parser(lang: &str) -> Parser {
 
 Additionally, since every language has its own eccentricities and language-specific parser. The tree-sitter nodes have different naming conventions. This is overall a good thing as it makes it much easier for language-specific functionality. As a result a language-specific config needs to be created.
 
-This is done in the form of a YAML file. When auto-UML is running it will load this config and use it to navigate the tree based on language-specific conventions.
+This is done in the form of a YAML file, which auto-UML uses to navigate the tree according to that language's conventions.
+
+> These configs are compiled into the binary to ensure portability. `build.rs` globs every `languages/*/config.yaml` into `$OUT_DIR/staged_languages`, and `src/lang_config.rs` embeds that directory with `include_dir!`.
 
 The following is the Rust config. Each of these labels is the node names for that type
 
@@ -137,6 +139,7 @@ parameter_patterns:
   - parameter
   - formal_parameter
 wrapper_patterns:
+  - generic_type
   - variable_declarator
   - field_declaration
   - function_item
@@ -145,6 +148,7 @@ wrapper_patterns:
   - struct_item
 skip_patterns: # some nodes do not need to be handled and can be skipped
   - modifiers
+  - visibility_modifier
   - storage_class
   - attribute_item
   - type_parameters
@@ -157,10 +161,73 @@ visibility_modifier_patterns:
 private_by_default: true
 public_modifier_patterns:
   - pub
-private_modifier_patterns: []
+class_type_parameter_patterns:
+  - type_parameters
+type_path_separator: "::"
+self_parameter_patterns:
+  - self_parameter
 ```
 
-> Not every language needs all of these items and so their fields can be left blank. The field is still a required part of the YAML as can be seen with private_modifier_patterns in the rust config.
+> **Every field is optional.** All keys not added to configs will not be used as part of the parsing process. This makes configuration far more modular and keeps languages such as javascript which don't need most features fast, and efficient while still allowing the handling of more complex language like rust.
+
+> YAML keys map one-to-one onto the snake_case fields of `LangConfig` in `src/lang_config.rs`. There are no aliases or renames, so the struct is the authoritative schema.
+
+### Config field reference
+
+Every field below is optional. Unless noted, each takes a list of tree-sitter node
+kinds. Start with the structural fields; reach for the quirk toggles at the bottom
+only when a grammar forces you to.
+
+#### Structure and scoping
+
+| Field | Purpose |
+| ----- | ------- |
+| `class_patterns` | Node kinds that open a class, struct, or impl block. Everything found inside becomes a member of that class. |
+| `function_patterns` | Node kinds that declare a function or method. |
+| `variable_patterns` | Node kinds that declare a field or variable. |
+| `parameter_container_patterns` | Node kinds holding a function's parameter list. |
+| `parameter_patterns` | Node kinds for an individual parameter inside that list. |
+| `wrapper_patterns` | Nodes that only nest the thing you actually want. The walker recurses through them instead of treating them as a declaration. |
+| `skip_patterns` | Nodes to ignore outright, so they never reach the class/function/variable handlers. |
+| `import_patterns` | Node kinds for import statements, collected to resolve types across files. |
+| `namespace_patterns` | Node kinds that introduce a namespace/module. Used to build qualified class names such as `auth_User`. |
+| `constructor_patterns` | Node kinds that are constructors. Their return type is suppressed, so no stray trailing `void`. |
+| `self_parameter_patterns` | Node kinds for an implicit receiver (Rust's `self`), excluded from the rendered parameter list. |
+
+#### Identifiers and types
+
+| Field | Purpose |
+| ----- | ------- |
+| `file_extensions` | Extensions used by the language.   |
+| `identifier_patterns` | Node kinds that carry a declared name. |
+| `type_patterns` | Node kinds that carry a type. The literal entry `type` is special-cased: it also matches any node kind *containing* `type`, which Rust's grammar relies on. |
+| `type_field_names` | Grammar field names marking a child as a *type reference* rather than a declared name. Needed when a grammar reuses one node kind (`identifier`) for both, as C# does. |
+| `type_argument_patterns` | Node kinds holding generic arguments as a *sibling* of the type name rather than inside it — Dart parses `List<int>` as `type_identifier` plus `type_arguments`. |
+| `type_strip_suffixes` | Trailing text attached to a type node that is not part of the name. |
+| `type_annotation_strip_prefix` | Prefix strings that should be stripped from type annotations. |
+| `type_path_separator` | The language's path separator, e.g. `"::"` for Rust or `"."` for Java, used when qualifying names. |
+| `class_type_parameter_patterns` | Node kinds holding a class's own generic parameters, rendered as `Box~T~`. |
+| `builtin_type_names` | Standard-library type names such as `String` or `Object` that shouldn't be treated as user defined classes. |
+
+#### Visibility
+
+| Field | Purpose |
+| ----- | ------- |
+| `visibility_modifier_patterns` | Node kinds that carry a visibility keyword. |
+| `public_modifier_patterns` | The keyword text that means public, e.g. `pub`. |
+| `private_modifier_patterns` | The keyword text that means private. |
+| `private_by_default` | Boolean. `true` when members are private unless marked otherwise. |
+
+#### Language quirk toggles
+
+All four are booleans, all default to off.
+
+| Field | Purpose |
+| ----- | ------- |
+| `infer_param_types_from_fields` | The language has field-promoting parameters, such as Dart's `Box(this.inner)`. An untyped parameter adopts the type of the same-named field on the enclosing class. |
+| `suppress_self_relations` | Drop association and dependency edges where source and destination are the same class. |
+| `infer_unresolved_type_relations` | Draw an association to a field's type even when that class is not in the parsed diagram, e.g. an imported type. Skipped for generic containers, lowercase primitives, and anything in `builtin_type_names`. |
+| `loosely_typed` | The language has no real type annotations (JavaScript). Suppresses the `void` placeholder that would otherwise render as `+id: void`. |
 
 ## Add the language to the CLI and selector
 
