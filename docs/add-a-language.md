@@ -73,18 +73,11 @@ files:
 
 ### Add to Integration Tests in `tests/integration_tests.rs`
 
-To ensure your language is included in the test suite, update the `load_test_configs` and `setup_parser` functions in `tests/integration_tests.rs`.
+Wiring your language into the suite takes two additions to `tests/integration_tests.rs`.
+
+First, add a `setup_parser` arm. Note this matches on the `name` from your `test.yaml`, **exactly**, with no aliases — so if your `test.yaml` says `name: objective-c`, the arm must be `"objective-c"`.
 
 ```rust
-fn load_test_configs() -> Vec<LangTestConfig> {
-    let mut configs = Vec::new();
-    let langs = [
-        // ... existing languages ...
-        "your-lang",
-    ];
-    // ...
-}
-
 fn setup_parser(lang: &str) -> Parser {
     let mut parser = Parser::new();
     match lang {
@@ -98,6 +91,19 @@ fn setup_parser(lang: &str) -> Parser {
     }
     parser
 }
+```
+
+Second, invoke the `lang_tests!` macro once, near the bottom of the file alongside the existing languages. The first argument is the test module name, the second is your directory under `languages/`.
+
+```rust
+lang_tests!(your_lang, "your-lang");
+```
+
+That single line generates all four test cases for your language. They are named `<module>::<category>`, so you can run one at a time:
+
+```fish
+cargo test your_lang              # all four cases for your language
+cargo test your_lang::generics    # just the generics case
 ```
 
 ## Defining the language config
@@ -274,6 +280,8 @@ impl LangConfig {
 }
 ```
 
+This `match` is also where you declare aliases, mapping every spelling a user might pass to the one directory name under `languages/`. Objective-C is the example to copy: `"objective-c" | "objc" => "objc"`. Both `get_parser` and `load` should accept the same set of aliases.
+
 ### 3. Add to `list_languages` in `LangConfig`
 
 This is used for the `--list-languages` help flag in the CLI tool.
@@ -294,5 +302,5 @@ impl LangConfig {
 Once you've verified your changes:
 
 1. **Run tests**: Execute `cargo test` to ensure all integration tests pass for your new language.
-2. **Linting**: Ensure your code follows the project standards. Ideally, the only changes to the source code should be adding it to the CLI tool, parser loader, and testing. Anything else will be highly scrutinized. So if changes were made, make sure to explain them in your merge request.
-3. **Submission**: Submit your merge request. Include both your code changes and the new `languages/<language-name>/` directory with its configuration and examples. The merge request name should be something along the lines of `feat: Added support for <language-name>`.
+2. **Linting**: Project standards are enforced by [prek](https://github.com/j178/prek) hooks, configured in `prek.toml`. Install them once with `prek install`, which registers the `pre-commit`, `commit-msg`, and `pre-push` stages.
+3. **Submission**: Submit your merge request. Include both your code changes and the new `languages/<language-name>/` directory with its configuration and examples. The merge request name should be something along the lines of `feat: Added support for <language-name>`. Ideally, the only changes to the source code should be adding it to the CLI tool, parser loader, and testing. Anything else will be highly scrutinized. So if changes were made, make sure to explain them in your merge request.

@@ -112,8 +112,8 @@
 //!
 //! ## How It Works
 //!
-//! 1. **Parsing**: Uses tree-sitter to build abstract syntax trees (AST) from source code.
-//! 2. **Extraction**: Traverses the AST to extract classes, functions, methods, and variables using language specific config.
+//! 1. **Parsing**: Uses tree-sitter to build a concrete syntax tree (CST) from source code.
+//! 2. **Extraction**: Traverses the CST to extract classes, functions, methods, and variables using language specific config.
 //! 3. **Stitching**: For multi-file projects, merges diagrams and resolves types across files to create one diagram.
 //! 4. **Generation**: Renders the finished diagram as Mermaid or Graphviz DOT, depending on `--format`.
 //!
