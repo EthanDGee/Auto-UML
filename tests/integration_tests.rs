@@ -65,7 +65,7 @@ fn setup_parser(lang: &str) -> Parser {
         }
         "dart" => {
             parser
-                .set_language(&tree_sitter_dart::language())
+                .set_language(&tree_sitter_dart::LANGUAGE.into())
                 .expect("Error loading Dart grammar");
         }
         "kotlin" => {
@@ -237,7 +237,7 @@ fn test_stitcher_integration() {
     root.push("stitch_test");
 
     let lang_config = LangConfig::load("rust");
-    let mut stitcher = Stitcher::new(root, &lang_config, setup_parser("rust"));
+    let mut stitcher = Stitcher::new(root, &lang_config, setup_parser("rust"), false);
     let mut directory = stitcher.build();
     directory.merge_all();
     directory.resolve_types(&stitcher.type_map);

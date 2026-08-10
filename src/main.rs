@@ -42,6 +42,10 @@ struct Args {
     #[arg(long, action = clap::ArgAction::SetTrue)]
     code_block: bool,
 
+    /// Includes ignored file in the parsed diagram
+    #[arg(long, action = clap::ArgAction::SetTrue)]
+    no_ignore: bool,
+
     /// Write destination file for the exporter. Defaults to UML.<file extension>
     #[arg(short, long)]
     destination: Option<String>,
@@ -122,7 +126,7 @@ fn get_parser(lang: &str) -> TreeSitterParser {
         }
         "dart" => {
             parser
-                .set_language(&tree_sitter_dart::language())
+                .set_language(&tree_sitter_dart::LANGUAGE.into())
                 .expect("Error loading dart grammar");
         }
         "kotlin" | "kt" => {
@@ -166,27 +170,18 @@ fn main() {
                 .expect("Failed to create temporary directory for clone");
         }
 
-        println!("Cloning {} to {}...", git_url, temp_path.display());
-
-        let mut callbacks = git2::RemoteCallbacks::new();
-        callbacks.transfer_progress(|progress| {
-            print!(
-                "\rCloning: {}/{} objects ({}%)",
-                progress.received_objects(),
-                progress.total_objects(),
-                100 * progress.received_objects() / progress.total_objects()
-            );
-            std::io::Write::flush(&mut std::io::stdout()).unwrap();
-            true
-        });
+        println!("Cloning {}...", git_url);
 
         let mut options = git2::FetchOptions::new();
-        options.remote_callbacks(callbacks);
+        // Shallow clone: only the tip commit is needed to generate a diagram.
         options.depth(1);
 
-        git2::Repository::clone(git_url, &temp_path).expect("Failed to clone repository");
+        git2::build::RepoBuilder::new()
+            .fetch_options(options)
+            .clone(git_url, &temp_path)
+            .expect("Failed to clone repository");
 
-        println!("\nClone complete. Analyzing...");
+        println!("Clone complete. Analyzing...");
 
         temp_dir = Some(temp_path.clone());
         temp_path
@@ -213,7 +208,7 @@ fn main() {
 
     // create diagram
     let final_diagram = if input_path.is_dir() {
-        let mut stitcher = stitcher::Stitcher::new(input_path, &config, parser);
+        let mut stitcher = stitcher::Stitcher::new(input_path, &config, parser, args.no_ignore);
         let mut directory = stitcher.build();
         directory.merge_all();
         directory.resolve_types(&stitcher.type_map);
