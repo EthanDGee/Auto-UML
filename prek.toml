@@ -36,7 +36,16 @@ rev = "v4.0.0-alpha.8"
 
 [[repos.hooks]]
 id = "prettier"
-types_or = ["lua"]
+types_or = [
+  "c++",
+  "java",
+  "javascript",
+  "ts",
+  "c#",
+  "objective-c",
+  "dart",
+  "kotlin",
+]
 
 [[repos]]
 repo = "local"
