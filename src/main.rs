@@ -42,6 +42,10 @@ struct Args {
     #[arg(long, action = clap::ArgAction::SetTrue)]
     code_block: bool,
 
+    /// Includes ignored file in the parsed diagram
+    #[arg(long, action = clap::ArgAction::SetTrue)]
+    no_ignore: bool,
+
     /// Write destination file for the exporter. Defaults to UML.<file extension>
     #[arg(short, long)]
     destination: Option<String>,
@@ -213,7 +217,7 @@ fn main() {
 
     // create diagram
     let final_diagram = if input_path.is_dir() {
-        let mut stitcher = stitcher::Stitcher::new(input_path, &config, parser);
+        let mut stitcher = stitcher::Stitcher::new(input_path, &config, parser, args.no_ignore);
         let mut directory = stitcher.build();
         directory.merge_all();
         directory.resolve_types(&stitcher.type_map);

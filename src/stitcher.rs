@@ -1,6 +1,7 @@
 use crate::diagram::Diagram;
 use crate::lang_config::LangConfig;
-use std::collections::HashMap;
+use ignore::WalkBuilder;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 use tree_sitter::Parser as TreeSitterParser;
@@ -161,34 +162,77 @@ pub struct Stitcher<'a> {
     pub type_map: GlobalTypeMap,
     pub config: &'a crate::lang_config::LangConfig,
     pub parser: TreeSitterParser,
+    /// When true, ignore rules (.gitignore, .ignore, hidden files) are not applied.
+    pub no_ignore: bool,
 }
 
 impl<'a> Stitcher<'a> {
-    pub fn new(root_path: PathBuf, config: &'a LangConfig, parser: TreeSitterParser) -> Self {
+    pub fn new(
+        root_path: PathBuf,
+        config: &'a LangConfig,
+        parser: TreeSitterParser,
+        no_ignore: bool,
+    ) -> Self {
         Stitcher {
             root_path,
             type_map: Default::default(),
             config,
             parser,
+            no_ignore,
         }
     }
 
     pub fn build(&mut self) -> Directory<'a> {
         let mut root_dir = Directory::new(self.config);
-        self.process_directory(&self.root_path.clone(), &mut root_dir);
+        // Unless ignore rules are disabled, pre-compute the set of visible paths so
+        // ignored directories are never descended into.
+        let visible = if self.no_ignore {
+            None
+        } else {
+            Some(self.collect_visible_paths())
+        };
+        self.process_directory(&self.root_path.clone(), &mut root_dir, visible.as_ref());
         root_dir
     }
 
-    fn process_directory(&mut self, current_path: &Path, current_dir: &mut Directory<'a>) {
+    /// Walk `root_path` with the `ignore` crate and collect every path it yields.
+    ///
+    /// Respects `.gitignore`, `.ignore`, git global/exclude files and skips hidden
+    /// entries. `require_git` is disabled so `.gitignore` files are honored even when
+    /// the target directory is not itself a git repository.
+    fn collect_visible_paths(&self) -> HashSet<PathBuf> {
+        WalkBuilder::new(&self.root_path)
+            .hidden(true)
+            .git_ignore(true)
+            .git_global(true)
+            .git_exclude(true)
+            .require_git(false)
+            .build()
+            .filter_map(Result::ok)
+            .map(|entry| entry.into_path())
+            .collect()
+    }
+
+    fn process_directory(
+        &mut self,
+        current_path: &Path,
+        current_dir: &mut Directory<'a>,
+        visible: Option<&HashSet<PathBuf>>,
+    ) {
         if let Ok(entries) = fs::read_dir(current_path) {
             for entry in entries.flatten() {
                 let path = entry.path();
+
+                // Skip anything the ignore walk didn't yield
+                if visible.is_some_and(|paths| !paths.contains(&path)) {
+                    continue;
+                }
 
                 match path {
                     p if p.is_dir() => {
                         // process sub directory
                         let mut sub_dir = Directory::new(self.config);
-                        self.process_directory(&p, &mut sub_dir);
+                        self.process_directory(&p, &mut sub_dir, visible);
                         current_dir.sub_directories.push(sub_dir);
                     }
                     p if self.is_source_file(&p) => {
@@ -266,7 +310,7 @@ mod tests {
     #[test]
     fn test_is_source_file() {
         let rust_config = LangConfig::load("rust");
-        let stitcher = Stitcher::new(PathBuf::from("."), &rust_config, setup_parser());
+        let stitcher = Stitcher::new(PathBuf::from("."), &rust_config, setup_parser(), false);
         assert!(stitcher.is_source_file(Path::new("test.rs")));
         assert!(!stitcher.is_source_file(Path::new("test.txt")));
 
@@ -275,8 +319,69 @@ mod tests {
         java_parser
             .set_language(&tree_sitter_java::LANGUAGE.into())
             .unwrap();
-        let stitcher_java = Stitcher::new(PathBuf::from("."), &java_config, java_parser);
+        let stitcher_java = Stitcher::new(PathBuf::from("."), &java_config, java_parser, false);
         assert!(stitcher_java.is_source_file(Path::new("Test.java")));
+    }
+
+    /// Build a temp tree containing a `.gitignore` that excludes `generated/`, one
+    /// source file inside it, and one outside. Returns the temp root.
+    fn setup_ignore_fixture(name: &str) -> PathBuf {
+        let root = std::env::temp_dir().join(format!("auto-uml-ignore-test-{}", name));
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(root.join("generated")).unwrap();
+        fs::write(root.join(".gitignore"), "generated/\n").unwrap();
+        fs::write(root.join("kept.rs"), "struct Kept { value: i32 }").unwrap();
+        fs::write(
+            root.join("generated").join("skipped.rs"),
+            "struct Skipped { value: i32 }",
+        )
+        .unwrap();
+        root
+    }
+
+    fn class_names(stitcher: &mut Stitcher) -> Vec<String> {
+        let mut directory = stitcher.build();
+        directory.merge_all();
+        directory
+            .merged_diagram
+            .classes
+            .iter()
+            .map(|c| c.name.clone())
+            .collect()
+    }
+
+    #[test]
+    fn test_ignored_files_are_skipped() {
+        let root = setup_ignore_fixture("respected");
+        let rust_config = LangConfig::load("rust");
+        let mut stitcher = Stitcher::new(root.clone(), &rust_config, setup_parser(), false);
+
+        let names = class_names(&mut stitcher);
+        assert!(names.iter().any(|n| n.contains("Kept")));
+        assert!(
+            !names.iter().any(|n| n.contains("Skipped")),
+            "gitignored file was parsed: {:?}",
+            names
+        );
+
+        let _ = fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn test_no_ignore_includes_ignored_files() {
+        let root = setup_ignore_fixture("disabled");
+        let rust_config = LangConfig::load("rust");
+        let mut stitcher = Stitcher::new(root.clone(), &rust_config, setup_parser(), true);
+
+        let names = class_names(&mut stitcher);
+        assert!(names.iter().any(|n| n.contains("Kept")));
+        assert!(
+            names.iter().any(|n| n.contains("Skipped")),
+            "no_ignore did not include the ignored file: {:?}",
+            names
+        );
+
+        let _ = fs::remove_dir_all(&root);
     }
 
     #[test]
@@ -306,7 +411,7 @@ mod tests {
         root.push("rust");
 
         let rust_config = LangConfig::load("rust");
-        let mut stitcher = Stitcher::new(root, &rust_config, setup_parser());
+        let mut stitcher = Stitcher::new(root, &rust_config, setup_parser(), false);
         let mut directory = stitcher.build();
         directory.merge_all();
         directory.resolve_types(&stitcher.type_map);
