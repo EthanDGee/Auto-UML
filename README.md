@@ -13,6 +13,7 @@
   - [Example](#example)
   - [Benchmark](#benchmark)
     - [Test codebases](#test-codebases)
+    - [Codebase statistics](#codebase-statistics)
     - [Results](#results)
 <!--toc:end-->
 
@@ -170,7 +171,7 @@ classDiagram
 
 Auto-UML is designed from the ground up to be extremely fast. Since it works with a per-file LR representation that is merged recursively it can also work on extremely large code bases. Most code bases can be done in milliseconds with the larger ones taking seconds. Making it a great addition to your CI/CD pipeline or for personal use.
 
-> **Disclaimer**: All benchmarks were performed on the latest main branch as of August 5, 2026.
+> **Disclaimer**: All benchmarks were performed on the latest main branch as of August 12, 2026.
 
 ### Test code bases
 
@@ -178,35 +179,50 @@ All of the following tests were done using hyperfine with 100 runs.
 
 - This Codebase - As is tradition for many analysis programs it is fitting that this program is used to analyze itself.
 
-- [CoreUtils](https://github.com/uutils/coreutils.git) - A rust rewrite of the GNU core utils. As a result it is a rather large code base made up of 1280 files, 610 being rust with 233,223 lines of code total.
+- [CoreUtils](https://github.com/uutils/coreutils.git) - A Rust rewrite of the GNU core utilities.
 
-- [Chart.js](https://github.com/chartjs/Chart.js) - A popular JavaScript charting library. Contains approximately 200 JavaScript files totaling around 30,000 lines of code. Tests done using the JavaScript parser.
+- [Chart.js](https://github.com/chartjs/Chart.js) - A popular JavaScript charting library. Tests done using the JavaScript parser.
 
-- [BuildCLI](https://github.com/BuildCLI/BuildCLI) - A Java CLI framework. Contains approximately 150 Java files.
+- [BuildCLI](https://github.com/BuildCLI/BuildCLI) - A Java CLI framework.
 
-- [faker-cxx](https://github.com/cieslarmichal/faker-cxx) - A C++ fake data generator library. Contains approximately 400 C++ files.
+- [faker-cxx](https://github.com/cieslarmichal/faker-cxx) - A C++ fake data generator library.
 
-- [authpass](https://github.com/authpass/authpass.git) - A Flutter/Dart password manager. Contains approximately 500 Dart files.
+- [authpass](https://github.com/authpass/authpass.git) - A Flutter/Dart password manager.
 
-- [jupyterlab](https://github.com/jupyterlab/jupyterlab) - A large TypeScript project. Contains approximately 1,000 TypeScript files.
+- [jupyterlab](https://github.com/jupyterlab/jupyterlab) - A large TypeScript project.
 
-- [bitwarden-server](https://github.com/bitwarden/server) - A large C# project. Contains approximately 1,500 C# files.
+- [bitwarden-server](https://github.com/bitwarden/server) - A large C# project.
 
-- [Platypus](https://github.com/sveinbjornt/Platypus) - An Objective-C macOS application. Contains approximately 30 Objective-C files.
+- [Platypus](https://github.com/sveinbjornt/Platypus) - An Objective-C macOS application.
 
-- [ktlint](https://github.com/pinterest/ktlint) - An anti-bikeshedding Kotlin linter with built-in formatter. Contains approximately 400 Kotlin files.
+- [ktlint](https://github.com/pinterest/ktlint) - An anti-bikeshedding Kotlin linter with built-in formatter.
+
+### Codebase Statistics
+
+| Codebase                                                      | Files | Lines    | Code     | Comments | Blank    |
+| ------------------------------------------------------------ | ----- | -------- | -------- | -------- | -------- |
+| [This Codebase](https://github.com/anomalyco/auto-UML)      | 7     | 2,333    | 1,778    | 364      | 191      |
+| [Chart.js](https://github.com/chartjs/Chart.js)             | 658   | 64,944   | 56,341   | 3,344    | 5,259    |
+| [CoreUtils](https://github.com/uutils/coreutils.git)         | 638   | 255,332  | 199,034  | 28,316   | 27,982   |
+| [BuildCLI](https://github.com/BuildCLI/BuildCLI)            | 250   | 16,143   | 12,599   | 648      | 2,896    |
+| [faker-cxx](https://github.com/cieslarmichal/faker-cxx)     | 174   | 117,490  | 107,431  | 4,403    | 5,656    |
+| [authpass](https://github.com/authpass/authpass.git)         | 162   | 62,697   | 47,188   | 3,288    | 12,221   |
+| [jupyterlab](https://github.com/jupyterlab/jupyterlab)       | 993   | 310,228  | 213,609  | 64,926   | 31,693   |
+| [bitwarden-server](https://github.com/bitwarden/server)     | 5,277 | 1,862,716 | 1,365,077 | 38,035  | 459,604  |
+| [Platypus](https://github.com/sveinbjornt/Platypus)         | 135   | 19,815   | 10,192   | 6,534    | 3,089    |
+| [ktlint](https://github.com/pinterest/ktlint)                 | 433   | 88,760   | 76,945   | 5,481    | 6,334    |
 
 ### Results
 
-| Codebase                                                      | Language      | Mean runtime | Standard Deviation | Min       | Max       |
-| ------------------------------------------------------------ | ------------- | ------------ | ------------------ | --------- | --------- |
-| [This Codebase](https://github.com/anomalyco/auto-UML)      | Rust          | 14.9 ms      | 1.8 ms             | 12.5 ms   | 21.1 ms   |
-| [Chart.js](https://github.com/chartjs/Chart.js)             | JavaScript    | 259.2 ms     | 24.5 ms            | 249.3 ms  | 413.1 ms  |
-| [CoreUtils](https://github.com/uutils/coreutils.git)         | Rust          | 1.133 s      | 0.057 s            | 1.097 s   | 1.308 s   |
-| [BuildCLI](https://github.com/BuildCLI/BuildCLI)            | Java          | 85.1 ms      | 9.7 ms             | 78.1 ms   | 158.3 ms  |
-| [faker-cxx](https://github.com/cieslarmichal/faker-cxx)     | C++           | 1.012 s      | 0.054 s            | 0.974 s   | 1.211 s   |
-| [authpass](https://github.com/authpass/authpass.git)         | Dart          | 313.3 ms     | 28.3 ms            | 300.5 ms  | 466.0 ms  |
-| [jupyterlab](https://github.com/jupyterlab/jupyterlab)       | TypeScript    | 1.352 s      | 0.061 s            | 1.315 s   | 1.520 s   |
-| [bitwarden-server](https://github.com/bitwarden/server)     | C#            | 18.298 s     | 0.192 s            | 17.999 s  | 18.947 s  |
-| [Platypus](https://github.com/sveinbjornt/Platypus)         | Objective-C   | 291.7 ms     | 23.9 ms            | 283.0 ms  | 433.7 ms  |
-| [ktlint](https://github.com/pinterest/ktlint)                 | Kotlin        | 838.0 ms     | 51.3 ms            | 811.9 ms  | 1132.9 ms |
+| Codebase                                                      | Language      | Mean runtime | Lines/sec | Standard Deviation | Min       | Max       |
+| ------------------------------------------------------------ | ------------- | ------------ | --------- | ------------------ | --------- | --------- |
+| [This Codebase](https://github.com/anomalyco/auto-UML)      | Rust          | 13.4 ms      | 174,104   | 1.4 ms             | 10.9 ms   | 17.7 ms   |
+| [Chart.js](https://github.com/chartjs/Chart.js)             | JavaScript    | 212.3 ms     | 305,907   | 4.0 ms             | 202.2 ms  | 220.8 ms  |
+| [CoreUtils](https://github.com/uutils/coreutils.git)         | Rust          | 1.031 s      | 247,655   | 0.122 s            | 0.931 s   | 1.469 s   |
+| [BuildCLI](https://github.com/BuildCLI/BuildCLI)            | Java          | 73.7 ms      | 219,037   | 5.9 ms             | 66.0 ms   | 91.8 ms   |
+| [faker-cxx](https://github.com/cieslarmichal/faker-cxx)     | C++           | 815.4 ms     | 144,089   | 31.4 ms            | 768.9 ms  | 960.7 ms  |
+| [authpass](https://github.com/authpass/authpass.git)         | Dart          | 297.2 ms     | 210,959   | 11.9 ms            | 282.4 ms  | 369.3 ms  |
+| [jupyterlab](https://github.com/jupyterlab/jupyterlab)       | TypeScript    | 1.170 s      | 265,152   | 0.066 s            | 1.114 s   | 1.497 s   |
+| [bitwarden-server](https://github.com/bitwarden/server)     | C#            | 16.122 s     | 115,539   | 0.708 s            | 15.200 s  | 19.555 s  |
+| [Platypus](https://github.com/sveinbjornt/Platypus)         | Objective-C   | 156.2 ms     | 126,857   | 2.8 ms             | 150.7 ms  | 164.5 ms  |
+| [ktlint](https://github.com/pinterest/ktlint)                 | Kotlin        | 702.7 ms     | 126,313   | 12.9 ms            | 678.2 ms  | 757.1 ms  |

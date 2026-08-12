@@ -71,11 +71,68 @@ pull_codebases() {
   cd "$SCRIPT_DIR"
 }
 
+# Maps an auto-uml language name to the file extensions scc should count.
+lang_extensions() {
+  case "$1" in
+    rust) echo "rs" ;;
+    javascript) echo "js,jsx,mjs,cjs" ;;
+    typescript) echo "ts,tsx" ;;
+    java) echo "java" ;;
+    cpp) echo "cpp,cc,cxx,c++,hpp,hh,hxx,h" ;;
+    csharp) echo "cs" ;;
+    objective-c) echo "m,mm,h" ;;
+    dart) echo "dart" ;;
+    kotlin) echo "kt,kts" ;;
+    ruby) echo "rb" ;;
+    *) echo "" ;;
+  esac
+}
+
+# Prints file/line counts for the language being benchmarked.
+code_stats() {
+  local source_code="$1"
+  local lang="$2"
+
+  if ! command -v scc &>/dev/null; then
+    info "scc not installed, skipping code stats"
+    return
+  fi
+
+  local exts
+  exts="$(lang_extensions "$lang")"
+  if [ -z "$exts" ]; then
+    info "No extension mapping for $lang, skipping code stats"
+    return
+  fi
+
+  local stats
+  stats="$(scc --include-ext "$exts" --format json2 "$source_code" 2>/dev/null |
+    jq -r '[.languageSummary[]] as $l
+           | [([$l[].Count] | add // 0),
+              ([$l[].Lines] | add // 0),
+              ([$l[].Code]  | add // 0),
+              ([$l[].Comment] | add // 0),
+              ([$l[].Blank] | add // 0)]
+           | @tsv')"
+
+  if [ -z "$stats" ]; then
+    info "Could not gather code stats for $source_code"
+    return
+  fi
+
+  local files lines code comment blank
+  IFS=$'\t' read -r files lines code comment blank <<<"$stats"
+
+  printf ">>> %'d files | %'d lines | %'d code | %'d comments | %'d blank\n" \
+    "$files" "$lines" "$code" "$comment" "$blank"
+}
+
 run_benchmark() {
   local name="$1"
   local source_code="$2"
   local lang="$3"
   header "Benchmark: $name ($lang)"
+  code_stats "$source_code" "$lang"
   hyperfine --runs $RUNS --warmup $WARMUP "$TOOL_PATH --source-code $source_code --lang $lang --destination uml.md"
 }
 
